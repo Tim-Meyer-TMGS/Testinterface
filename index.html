@@ -11,12 +11,12 @@
       <aside class="sidebar" id="sidebar">
         <div class="brand">
           <h1>Praxisbuchhaltung</h1>
-          <p>Zahnarztpraxis · Buchhaltung & Lager</p>
+          <p>Zahnarztpraxis · Einnahmen, Ausgaben & Material</p>
         </div>
         <nav class="nav" aria-label="Hauptnavigation">
           <button class="nav-button active" data-view="dashboard">Dashboard</button>
-          <button class="nav-button" data-view="accounts">Konten</button>
-          <button class="nav-button" data-view="bookings">Buchungen</button>
+          <button class="nav-button" data-view="accounts">Bereiche</button>
+          <button class="nav-button" data-view="bookings">Vorgänge</button>
           <button class="nav-button" data-view="payments">Zahlungen</button>
           <button class="nav-button" data-view="inventory">Lager</button>
           <button class="nav-button" data-view="import-export">Export / Import</button>
@@ -43,7 +43,7 @@
             <div class="stats-grid" id="dashboard-stats"></div>
             <div class="card">
               <div class="section-header">
-                <h3>Buchungshistorie</h3>
+                <h3>Letzte Vorgänge</h3>
               </div>
               <div class="table-wrapper">
                 <table>
@@ -78,17 +78,17 @@
             </div>
             <div class="card">
               <div class="section-header">
-                <h3>Kontenübersicht</h3>
+                <h3>Geld- und Bereichsübersicht</h3>
               </div>
               <div class="table-wrapper">
                 <table>
                   <thead>
                     <tr>
-                      <th>Kontonummer</th>
-                      <th>Kontoname</th>
+                      <th>Nummer</th>
+                      <th>Bereich</th>
                       <th>Typ</th>
-                      <th>Soll</th>
-                      <th>Haben</th>
+                      <th>Soll (Ziel)</th>
+                      <th>Haben (Quelle)</th>
                       <th>Saldo</th>
                     </tr>
                   </thead>
@@ -138,45 +138,45 @@
           <section id="view-accounts" class="view">
             <div class="card">
               <div class="section-header">
-                <h3>Neues Konto</h3>
+                <h3>Neuen Bereich anlegen</h3>
               </div>
               <form id="account-form" class="form-grid">
                 <label>
-                  Kontonummer
+                  Nummer
                   <input id="account-number" name="accountNo" type="text" placeholder="z. B. 1300" />
                 </label>
                 <label>
-                  Kontoname
+                  Name
                   <input id="account-name" name="accountName" type="text" required />
                 </label>
                 <label>
-                  Kontotyp
+                  Art
                   <select id="account-type" name="accountType">
-                    <option value="asset">Aktivkonto</option>
-                    <option value="liability">Passivkonto</option>
-                    <option value="revenue">Ertragskonto</option>
-                    <option value="expense">Aufwandskonto</option>
-                    <option value="tax">Steuerkonto</option>
+                    <option value="asset">Geld oder Bestand</option>
+                    <option value="liability">Offene Rechnung</option>
+                    <option value="revenue">Einnahme</option>
+                    <option value="expense">Ausgabe</option>
+                    <option value="tax">Steuer</option>
                   </select>
                 </label>
                 <div class="form-actions">
-                  <button type="submit">Konto anlegen</button>
+                  <button type="submit">Bereich anlegen</button>
                 </div>
               </form>
             </div>
             <div class="card">
               <div class="section-header">
-                <h3>Kontenliste</h3>
+                <h3>Bereiche und Salden</h3>
               </div>
               <div class="table-wrapper">
                 <table>
                   <thead>
                     <tr>
-                      <th>Kontonummer</th>
-                      <th>Kontoname</th>
+                      <th>Nummer</th>
+                      <th>Bereich</th>
                       <th>Typ</th>
-                      <th>Soll</th>
-                      <th>Haben</th>
+                      <th>Soll (Ziel)</th>
+                      <th>Haben (Quelle)</th>
                       <th>Saldo</th>
                       <th>Aktion</th>
                     </tr>
@@ -187,7 +187,7 @@
             </div>
             <div class="card">
               <div class="section-header">
-                <h3>Kontendetails</h3>
+                <h3>Details zum Bereich</h3>
               </div>
               <div id="account-detail-summary" class="small"></div>
               <div class="table-wrapper" style="margin-top: 0.8rem;">
@@ -210,7 +210,7 @@
           <section id="view-bookings" class="view">
             <div class="card">
               <div class="section-header">
-                <h3 id="booking-form-title">Neue Buchung</h3>
+                <h3 id="booking-form-title">Neuen Vorgang erfassen</h3>
               </div>
               <form id="booking-form" class="form-grid">
                 <input id="booking-id" name="bookingId" type="hidden" />
@@ -223,15 +223,15 @@
                   <input id="booking-document" name="bookingDocument" type="text" placeholder="Leer = automatische Nummer" />
                 </label>
                 <label class="full-width">
-                  Beschreibung
+                  Was ist passiert?
                   <input id="booking-description" name="bookingDescription" type="text" required />
                 </label>
                 <label>
-                  Soll-Konto
+                  Zielkonto (Soll)
                   <select id="booking-debit" name="bookingDebit"></select>
                 </label>
                 <label>
-                  Haben-Konto
+                  Gegenkonto (Haben)
                   <select id="booking-credit" name="bookingCredit"></select>
                 </label>
                 <label>
@@ -239,13 +239,13 @@
                   <input id="booking-amount" name="bookingAmount" type="number" min="0.01" step="0.01" required />
                 </label>
                 <label>
-                  Steuerart
+                  Steuer
                   <select id="booking-tax-type" name="bookingTaxType">
                     <option value="none">Keine Steuer</option>
-                    <option value="vat19">19 % Umsatzsteuer</option>
-                    <option value="vat7">7 % Umsatzsteuer</option>
-                    <option value="input19">19 % Vorsteuer</option>
-                    <option value="input7">7 % Vorsteuer</option>
+                    <option value="vat19">19 % Umsatzsteuer (Verkauf)</option>
+                    <option value="vat7">7 % Umsatzsteuer (Verkauf)</option>
+                    <option value="input19">19 % Vorsteuer (Einkauf)</option>
+                    <option value="input7">7 % Vorsteuer (Einkauf)</option>
                   </select>
                 </label>
                 <label>
@@ -256,34 +256,34 @@
                   </select>
                 </label>
                 <label>
-                  Lagerartikel
+                  Materialartikel
                   <select id="booking-item" name="bookingItem">
                     <option value="">Kein Artikel</option>
                   </select>
                 </label>
                 <label>
-                  Lagerwirkung
+                  Auswirkung auf Lager
                   <select id="booking-inventory-link" name="bookingInventoryLink">
                     <option value="none">Kein Lager</option>
-                    <option value="in">Wareneingang</option>
-                    <option value="out">Lagerabgang</option>
+                    <option value="in">Material kommt rein</option>
+                    <option value="out">Material geht raus</option>
                   </select>
                 </label>
                 <label>
                   Menge
                   <input id="booking-quantity" name="bookingQuantity" type="number" step="0.01" />
                 </label>
-                <div class="full-width small">Wenn du einen Lagerartikel und eine Lagerwirkung auswählst, wird der Praxisbestand automatisch über die Buchung aktualisiert.</div>
+                <div class="full-width small">Wenn du einen Artikel und eine Lagerwirkung auswählst, wird der Praxisbestand automatisch mitgeführt.</div>
                 <div class="tax-summary full-width" id="booking-tax-summary"></div>
                 <div class="form-actions full-width">
-                  <button type="submit">Buchung speichern</button>
+                  <button type="submit">Vorgang speichern</button>
                   <button type="button" id="booking-cancel" class="secondary">Abbrechen</button>
                 </div>
               </form>
             </div>
             <div class="card">
               <div class="section-header">
-                <h3>Journal</h3>
+                <h3>Journal der Vorgänge</h3>
               </div>
               <div class="table-wrapper">
                 <table>
@@ -292,8 +292,8 @@
                       <th>Datum</th>
                       <th>Beleg</th>
                       <th>Beschreibung</th>
-                      <th>Soll</th>
-                      <th>Haben</th>
+                      <th>Zielkonto</th>
+                      <th>Gegenkonto</th>
                       <th>Netto</th>
                       <th>Steuer</th>
                       <th>Steuerbetrag</th>
@@ -307,7 +307,7 @@
             </div>
             <div class="card">
               <div class="section-header">
-                <h3>Belegdetails</h3>
+                <h3>Details zum Vorgang</h3>
               </div>
               <div id="booking-detail-summary" class="small"></div>
               <div class="table-wrapper" style="margin-top: 0.8rem;">
@@ -369,7 +369,7 @@
             </div>
             <div class="card">
               <div class="section-header">
-                <h3>Aktuelle Buchungen</h3>
+                <h3>Aktuelle Vorgänge</h3>
               </div>
               <div class="table-wrapper">
                 <table>
@@ -390,7 +390,7 @@
           <section id="view-inventory" class="view">
             <div class="card">
               <div class="section-header">
-                <h3>Artikelverwaltung</h3>
+                <h3>Material verwalten</h3>
               </div>
               <div class="small">Pflege von Hygienematerial, Behandlungsbedarf und Prophylaxeartikeln an einem Ort.</div>
               <form id="inventory-item-form" class="form-grid">
@@ -416,11 +416,11 @@
                   <input id="inventory-opening" name="inventoryOpening" type="number" step="0.01" />
                 </label>
                 <label>
-                  Einkaufspreis netto
+                  Einkaufspreis ohne Steuer
                   <input id="inventory-purchase" name="inventoryPurchase" type="number" step="0.01" />
                 </label>
                 <label>
-                  Verkaufspreis netto
+                  Verkaufspreis ohne Steuer
                   <input id="inventory-sale" name="inventorySale" type="number" step="0.01" />
                 </label>
                 <label>
@@ -469,7 +469,7 @@
             </div>
             <div class="card">
               <div class="section-header">
-                <h3>Lagerbewegung erfassen</h3>
+                <h3>Materialbewegung erfassen</h3>
               </div>
               <form id="inventory-movement-form" class="form-grid">
                 <label>
@@ -481,10 +481,10 @@
                   <select id="movement-item" name="movementItem"></select>
                 </label>
                 <label>
-                  Bewegungsart
+                  Art der Bewegung
                   <select id="movement-type" name="movementType">
-                    <option value="in">Zugang</option>
-                    <option value="out">Abgang</option>
+                    <option value="in">Zugang (rein)</option>
+                    <option value="out">Abgang (raus)</option>
                     <option value="adjustment">Korrektur</option>
                   </select>
                 </label>
@@ -493,7 +493,7 @@
                   <input id="movement-quantity" name="movementQuantity" type="number" step="0.01" required />
                 </label>
                 <label>
-                  Einzelwert netto
+                  Einzelwert ohne Steuer
                   <input id="movement-value" name="movementValue" type="number" step="0.01" />
                 </label>
                 <label>
@@ -544,7 +544,7 @@
               <div class="action-stack">
                 <button id="export-json">Daten als JSON exportieren</button>
                 <button id="export-bookings-csv" class="secondary">Journal als CSV exportieren</button>
-                <button id="export-inventory-csv" class="secondary">Lagerbestand als CSV exportieren</button>
+                <button id="export-inventory-csv" class="secondary">Materialbestand als CSV exportieren</button>
               </div>
             </div>
             <div class="card">

@@ -94,8 +94,8 @@ function setView(view, updateHash = true) {
   document.querySelectorAll('.view').forEach((section) => section.classList.toggle('active', section.id === `view-${currentView}`));
   $('page-title').textContent = {
     dashboard: 'Dashboard',
-    accounts: 'Konten',
-    bookings: 'Buchungen',
+    accounts: 'Bereiche',
+    bookings: 'Vorgänge',
     payments: 'Zahlungen',
     inventory: 'Lager',
     'import-export': 'Export / Import',
@@ -118,10 +118,10 @@ function renderDashboard() {
   const stats = [
     ['Kassenbestand', formatCurrency(accountMap[ACCOUNT_IDS.cash]?.balance || 0)],
     ['Bankbestand', formatCurrency(accountMap[ACCOUNT_IDS.bank]?.balance || 0)],
-    ['Forderungen offen', formatCurrency(accountMap[ACCOUNT_IDS.receivables]?.balance || 0)],
-    ['Verbindlichkeiten offen', formatCurrency(accountMap[ACCOUNT_IDS.payables]?.balance || 0)],
-    ['Gespeicherte Buchungen', state.bookings.length],
-    ['Anzahl Lagerartikel', state.inventoryItems.length],
+    ['Offene Patientenrechnungen', formatCurrency(accountMap[ACCOUNT_IDS.receivables]?.balance || 0)],
+    ['Offene Lieferantenrechnungen', formatCurrency(accountMap[ACCOUNT_IDS.payables]?.balance || 0)],
+    ['Gespeicherte Vorgänge', state.bookings.length],
+    ['Anzahl Materialartikel', state.inventoryItems.length],
     ['Lagerwert gesamt', formatCurrency(inventoryValue)],
     ['Letzter Speicherstatus', state.settings.lastSavedAt ? formatDateTime(state.settings.lastSavedAt) : 'Noch nicht gespeichert']
   ];
@@ -156,25 +156,25 @@ function renderAccounts() {
     const actions = text('td', '');
     actions.append(button('Anzeigen', { selectAccount: account.id }), button('Löschen', { deleteAccount: account.id }, 'danger'));
     return tr([account.accountNo, account.name, TYPE_LABELS[account.type], formatCurrency(account.debitTotal), formatCurrency(account.creditTotal), formatCurrency(account.balance), actions]);
-  }), emptyRow(7, 'Noch keine Konten vorhanden.'));
+  }), emptyRow(7, 'Noch keine Bereiche vorhanden.'));
   renderAccountDetails(state.settings.selectedAccountId || state.accounts[0]?.id);
 }
 
 function renderAccountDetails(accountId) {
   const account = state.accounts.find((entry) => entry.id === accountId);
   if (!account) {
-    $('account-detail-summary').textContent = 'Bitte ein Konto auswählen.';
-    renderRows('account-detail-bookings', [], emptyRow(5, 'Kein Konto ausgewählt.'));
+    $('account-detail-summary').textContent = 'Bitte einen Bereich auswählen.';
+    renderRows('account-detail-bookings', [], emptyRow(5, 'Kein Bereich ausgewählt.'));
     return;
   }
-  $('account-detail-summary').textContent = `${account.accountNo} ${account.name} · ${TYPE_LABELS[account.type]} · Soll ${formatCurrency(account.debitTotal)} · Haben ${formatCurrency(account.creditTotal)} · Saldo ${formatCurrency(account.balance)}`;
+  $('account-detail-summary').textContent = `${account.accountNo} ${account.name} · ${TYPE_LABELS[account.type]} · Soll/Ziel ${formatCurrency(account.debitTotal)} · Haben/Quelle ${formatCurrency(account.creditTotal)} · Saldo ${formatCurrency(account.balance)}`;
   const rows = state.bookings
     .filter((booking) => buildBookingLines(booking).some((line) => line.accountId === account.id))
     .sort((a, b) => b.date.localeCompare(a.date))
     .flatMap((booking) => buildBookingLines(booking).filter((line) => line.accountId === account.id).map((line) => tr([
-      formatDate(booking.date), booking.documentNo, booking.description, formatCurrency(line.amount), line.side === 'debit' ? 'Soll' : 'Haben'
+      formatDate(booking.date), booking.documentNo, booking.description, formatCurrency(line.amount), line.side === 'debit' ? 'Soll (Ziel)' : 'Haben (Quelle)'
     ])));
-  renderRows('account-detail-bookings', rows, emptyRow(5, 'Keine Buchungen für dieses Konto vorhanden.'));
+  renderRows('account-detail-bookings', rows, emptyRow(5, 'Keine Vorgänge für diesen Bereich vorhanden.'));
 }
 
 function renderBookingForm() {
@@ -215,15 +215,15 @@ function renderBookings() {
       actions
     ]);
   });
-  renderRows('booking-list', rows, emptyRow(10, 'Noch keine Buchungen vorhanden.'));
+  renderRows('booking-list', rows, emptyRow(10, 'Noch keine Vorgänge vorhanden.'));
   renderBookingDetails(state.settings.selectedBookingId || state.bookings[0]?.id);
 }
 
 function renderBookingDetails(bookingId) {
   const booking = state.bookings.find((entry) => entry.id === bookingId);
   if (!booking) {
-    $('booking-detail-summary').textContent = 'Bitte eine Buchung auswählen.';
-    renderRows('booking-detail-fields', [], emptyRow(2, 'Keine Buchung ausgewählt.'));
+    $('booking-detail-summary').textContent = 'Bitte einen Vorgang auswählen.';
+    renderRows('booking-detail-fields', [], emptyRow(2, 'Kein Vorgang ausgewählt.'));
     return;
   }
   const lines = buildBookingLines(booking);
@@ -235,7 +235,7 @@ function renderBookingDetails(bookingId) {
     tr(['Brutto', formatCurrency(booking.grossAmount)]),
     ...lines.map((line) => {
       const account = state.accounts.find((entry) => entry.id === line.accountId);
-      return tr([line.side === 'debit' ? 'Soll' : 'Haben', `${account?.accountNo || ''} ${account?.name || ''} · ${formatCurrency(line.amount)} · ${line.label}`]);
+      return tr([line.side === 'debit' ? 'Soll (Ziel)' : 'Haben (Quelle)', `${account?.accountNo || ''} ${account?.name || ''} · ${formatCurrency(line.amount)} · ${line.label}`]);
     })
   ]);
 }
@@ -256,7 +256,7 @@ function renderInventoryItems() {
     actions.append(button('Bearbeiten', { editItem: item.id }), button('Korrektur', { adjustItem: item.id }), button('Löschen', { deleteItem: item.id }, 'danger'));
     return tr([item.name, item.sku, item.currentStock, formatCurrency(item.currentValue), actions]);
   });
-  renderRows('inventory-item-list', rows, emptyRow(5, 'Noch keine Lagerartikel vorhanden.'));
+  renderRows('inventory-item-list', rows, emptyRow(5, 'Noch keine Materialartikel vorhanden.'));
   selectOptions($('movement-item'), state.inventoryItems.map((item) => ({ value: item.id, label: item.name })), $('movement-item').value);
   renderInventoryForecasts();
   updateMovementStockInfo();
@@ -266,7 +266,7 @@ function renderInventoryForecasts() {
   const grid = $('inventory-forecast-grid');
   clear(grid);
   if (!state.inventoryItems.length) {
-    grid.append(text('div', 'Noch keine Lagerartikel vorhanden.', 'empty-state'));
+    grid.append(text('div', 'Noch keine Materialartikel vorhanden.', 'empty-state'));
     return;
   }
   state.inventoryItems.forEach((item) => {
@@ -299,9 +299,9 @@ function renderInventoryMovements() {
     const item = state.inventoryItems.find((entry) => entry.id === movement.itemId);
     const actions = text('td', '');
     actions.append(button('Löschen', { deleteMovement: movement.id }, 'danger'));
-    return tr([formatDate(movement.date), item?.name || '', movement.type === 'in' ? 'Zugang' : movement.type === 'out' ? 'Abgang' : 'Korrektur', movement.quantity, formatCurrency(movement.unitValueNet), movement.documentNo, actions]);
+    return tr([formatDate(movement.date), item?.name || '', movement.type === 'in' ? 'Zugang (rein)' : movement.type === 'out' ? 'Abgang (raus)' : 'Korrektur', movement.quantity, formatCurrency(movement.unitValueNet), movement.documentNo, actions]);
   });
-  renderRows('inventory-movement-list', rows, emptyRow(7, 'Noch keine Lagerbewegungen vorhanden.'));
+  renderRows('inventory-movement-list', rows, emptyRow(7, 'Noch keine Materialbewegungen vorhanden.'));
 }
 
 function buildBookingFromForm(formData, bookingId = null) {
@@ -325,13 +325,13 @@ function buildBookingFromForm(formData, bookingId = null) {
 function validateBooking(booking, currentState = state) {
   if (!booking.date) return 'Bitte ein Datum eingeben.';
   if (!booking.description) return 'Bitte eine Beschreibung eingeben.';
-  if (!currentState.accounts.some((account) => account.id === booking.debitAccountId)) return 'Bitte ein vorhandenes Soll-Konto wählen.';
-  if (!currentState.accounts.some((account) => account.id === booking.creditAccountId)) return 'Bitte ein vorhandenes Haben-Konto wählen.';
-  if (booking.debitAccountId === booking.creditAccountId) return 'Soll- und Haben-Konto dürfen nicht identisch sein.';
+  if (!currentState.accounts.some((account) => account.id === booking.debitAccountId)) return 'Bitte ein vorhandenes Zielkonto wählen.';
+  if (!currentState.accounts.some((account) => account.id === booking.creditAccountId)) return 'Bitte ein vorhandenes Gegenkonto wählen.';
+  if (booking.debitAccountId === booking.creditAccountId) return 'Zielkonto und Gegenkonto dürfen nicht identisch sein.';
   if (Number(booking.amount) <= 0) return 'Bitte einen Betrag größer als 0 eingeben.';
   if (booking.inventoryLinkType !== 'none') {
-    if (!booking.inventoryItemId) return 'Bitte einen Lagerartikel auswählen.';
-    if (!booking.quantity || Number(booking.quantity) <= 0) return 'Bitte eine Menge für den Lagerartikel eingeben.';
+    if (!booking.inventoryItemId) return 'Bitte einen Materialartikel auswählen.';
+    if (!booking.quantity || Number(booking.quantity) <= 0) return 'Bitte eine Menge für den Materialartikel eingeben.';
     const movement = {
       date: booking.date,
       itemId: booking.inventoryItemId,
@@ -363,20 +363,20 @@ async function handleBookingSubmit(event) {
   editingBookingId = null;
   event.currentTarget.reset();
   $('booking-id').value = '';
-  $('booking-form-title').textContent = 'Neue Buchung';
-  await commit(nextState, 'Buchung gespeichert');
+  $('booking-form-title').textContent = 'Neuen Vorgang erfassen';
+  await commit(nextState, 'Vorgang gespeichert');
 }
 
 async function handleAccountSubmit(event) {
   event.preventDefault();
   const formData = new FormData(event.currentTarget);
   const name = String(formData.get('accountName') || '').trim();
-  if (!name) return alert('Bitte einen Kontonamen eingeben.');
+  if (!name) return alert('Bitte einen Namen eingeben.');
   const accountNo = String(formData.get('accountNo') || '').trim() || generateNextAccountNumber(state.accounts);
-  if (state.accounts.some((account) => account.accountNo === accountNo)) return alert('Diese Kontonummer ist bereits vorhanden.');
+  if (state.accounts.some((account) => account.accountNo === accountNo)) return alert('Diese Nummer ist bereits vorhanden.');
   const account = { id: generateId('account'), accountNo, name, type: formData.get('accountType') || 'asset' };
   event.currentTarget.reset();
-  await commit({ ...state, accounts: [...state.accounts, account] }, 'Konto gespeichert');
+  await commit({ ...state, accounts: [...state.accounts, account] }, 'Bereich gespeichert');
 }
 
 async function handleInventoryItemSubmit(event) {
@@ -422,7 +422,7 @@ async function handleInventoryMovementSubmit(event) {
   if (error) return alert(error);
   if (!movement.description) return alert('Bitte eine Beschreibung eingeben.');
   event.currentTarget.reset();
-  await commit({ ...state, inventoryMovements: [...state.inventoryMovements, movement] }, 'Lagerbewegung gespeichert');
+  await commit({ ...state, inventoryMovements: [...state.inventoryMovements, movement] }, 'Materialbewegung gespeichert');
 }
 
 async function handlePaymentSubmit(event) {
@@ -460,14 +460,14 @@ async function handleDeleteBooking(id) {
     inventoryMovements: state.inventoryMovements.filter((movement) => movement.linkedBookingId !== id),
     settings: { ...state.settings, selectedBookingId: state.settings.selectedBookingId === id ? null : state.settings.selectedBookingId }
   };
-  await commit(nextState, 'Buchung gelöscht');
+  await commit(nextState, 'Vorgang gelöscht');
 }
 
 function handleEditBooking(id) {
   const booking = state.bookings.find((entry) => entry.id === id);
   if (!booking) return;
   editingBookingId = id;
-  $('booking-form-title').textContent = 'Buchung bearbeiten';
+  $('booking-form-title').textContent = 'Vorgang bearbeiten';
   $('booking-id').value = booking.id;
   $('booking-date').value = booking.date;
   $('booking-document').value = booking.documentNo;
@@ -492,24 +492,24 @@ async function handleDuplicateBooking(id) {
   if (error) return alert(error);
   let nextState = { ...state, bookings: [...state.bookings, duplicate] };
   nextState = syncMovementForBooking(nextState, duplicate);
-  await commit(nextState, 'Buchung dupliziert');
+  await commit(nextState, 'Vorgang dupliziert');
 }
 
 async function handleDeleteAccount(id) {
-  if (state.bookings.some((booking) => booking.debitAccountId === id || booking.creditAccountId === id)) return alert('Dieses Konto wird in Buchungen verwendet und kann nicht gelöscht werden.');
-  await commit({ ...state, accounts: state.accounts.filter((account) => account.id !== id) }, 'Konto gelöscht');
+  if (state.bookings.some((booking) => booking.debitAccountId === id || booking.creditAccountId === id)) return alert('Dieser Bereich wird in Vorgängen verwendet und kann nicht gelöscht werden.');
+  await commit({ ...state, accounts: state.accounts.filter((account) => account.id !== id) }, 'Bereich gelöscht');
 }
 
 async function handleDeleteItem(id) {
-  if (state.bookings.some((booking) => booking.inventoryItemId === id)) return alert('Dieser Artikel wird in Buchungen verwendet und kann nicht gelöscht werden.');
-  if (state.inventoryMovements.some((movement) => movement.itemId === id)) return alert('Dieser Artikel hat Lagerbewegungen und kann nicht gelöscht werden.');
+  if (state.bookings.some((booking) => booking.inventoryItemId === id)) return alert('Dieser Artikel wird in Vorgängen verwendet und kann nicht gelöscht werden.');
+  if (state.inventoryMovements.some((movement) => movement.itemId === id)) return alert('Dieser Artikel hat Materialbewegungen und kann nicht gelöscht werden.');
   await commit({ ...state, inventoryItems: state.inventoryItems.filter((item) => item.id !== id) }, 'Artikel gelöscht');
 }
 
 async function handleDeleteMovement(id) {
   const movement = state.inventoryMovements.find((entry) => entry.id === id);
-  if (movement?.linkedBookingId) return alert('Diese Lagerbewegung gehört zu einer Buchung. Bitte die Buchung bearbeiten oder löschen.');
-  await commit({ ...state, inventoryMovements: state.inventoryMovements.filter((entry) => entry.id !== id) }, 'Lagerbewegung gelöscht');
+  if (movement?.linkedBookingId) return alert('Diese Materialbewegung gehört zu einem Vorgang. Bitte den Vorgang bearbeiten oder löschen.');
+  await commit({ ...state, inventoryMovements: state.inventoryMovements.filter((entry) => entry.id !== id) }, 'Materialbewegung gelöscht');
 }
 
 async function handleAdjustItem(id) {
@@ -577,7 +577,7 @@ function exportJson() {
 
 function exportCsv(type) {
   const rows = type === 'bookings'
-    ? [['Datum', 'Beleg', 'Beschreibung', 'Soll', 'Haben', 'Netto', 'Steuerart', 'Steuerbetrag', 'Brutto'], ...state.bookings.map((booking) => [
+    ? [['Datum', 'Beleg', 'Beschreibung', 'Zielkonto', 'Gegenkonto', 'Netto', 'Steuer', 'Steuerbetrag', 'Brutto'], ...state.bookings.map((booking) => [
         booking.date,
         booking.documentNo,
         booking.description,
@@ -639,7 +639,7 @@ function wireEvents() {
     editingBookingId = null;
     $('booking-form').reset();
     $('booking-id').value = '';
-    $('booking-form-title').textContent = 'Neue Buchung';
+    $('booking-form-title').textContent = 'Neuen Vorgang erfassen';
     renderBookingForm();
   });
   $('inventory-item-cancel').addEventListener('click', () => {

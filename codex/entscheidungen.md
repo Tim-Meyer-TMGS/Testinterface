@@ -8,7 +8,11 @@
 ## Kontenrahmen
 - Die Seed-Daten sind SKR03-nah.
 - Es wird kein vollständiger SKR03-Kontenrahmen abgebildet.
-- Wichtige Standardkonten sind eindeutig vorhanden: Kasse, Bank, Forderungen, Verbindlichkeiten, Vorsteuer, Umsatzsteuer, Eigenkapital, Wareneingang, Erlöse.
+- Wichtige Standardbereiche sind eindeutig vorhanden: Kasse, Bank, offene Patientenrechnungen, offene Lieferantenrechnungen, Vorsteuer, Umsatzsteuer, Eigenkapital, Praxislager, Ausgaben und Einnahmen.
+
+## Einsteiger-Sprache
+- Die Oberfläche nutzt Praxisbegriffe zuerst: Vorgang, Zielkonto, Gegenkonto, Einnahme, Ausgabe, offene Rechnung, Material rein und Material raus.
+- Soll/Haben bleiben in Details sichtbar, damit die Lern-App fachlich anschlussfähig bleibt.
 
 ## Speicherung
 - `localStorage` bleibt der Standard.

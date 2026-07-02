@@ -4,18 +4,18 @@
   "accounts": [
     { "id": "account-cash", "accountNo": "1000", "name": "Kasse", "type": "asset" },
     { "id": "account-bank", "accountNo": "1200", "name": "Bank", "type": "asset" },
-    { "id": "account-receivables", "accountNo": "1400", "name": "Forderungen aus Patienten und Abrechnungsstellen", "type": "asset" },
-    { "id": "account-payables", "accountNo": "1600", "name": "Verbindlichkeiten aus Lieferungen und Leistungen", "type": "liability" },
-    { "id": "account-input-vat", "accountNo": "1576", "name": "Abziehbare Vorsteuer 19 %", "type": "tax" },
-    { "id": "account-vat", "accountNo": "1776", "name": "Umsatzsteuer 19 %", "type": "tax" },
+    { "id": "account-receivables", "accountNo": "1400", "name": "Offene Patientenrechnungen", "type": "asset" },
+    { "id": "account-payables", "accountNo": "1600", "name": "Offene Lieferantenrechnungen", "type": "liability" },
+    { "id": "account-input-vat", "accountNo": "1576", "name": "Vorsteuer aus Einkäufen 19 %", "type": "tax" },
+    { "id": "account-vat", "accountNo": "1776", "name": "Umsatzsteuer aus Verkäufen 19 %", "type": "tax" },
     { "id": "account-equity", "accountNo": "0800", "name": "Eigenkapital", "type": "liability" },
     { "id": "account-inventory", "accountNo": "3980", "name": "Praxislager", "type": "asset" },
-    { "id": "account-purchases", "accountNo": "3400", "name": "Praxis- und Verbrauchsmaterial 19 % Vorsteuer", "type": "expense" },
-    { "id": "account-lab", "accountNo": "4780", "name": "Fremdlabor und zahntechnische Leistungen", "type": "expense" },
-    { "id": "account-rent", "accountNo": "4210", "name": "Praxisräume Miete", "type": "expense" },
-    { "id": "account-expenses", "accountNo": "4900", "name": "Sonstige betriebliche Aufwendungen", "type": "expense" },
-    { "id": "account-sales", "accountNo": "8000", "name": "Behandlungserlöse Zahnarztpraxis", "type": "revenue" },
-    { "id": "account-product-sales", "accountNo": "8400", "name": "Verkauf Prophylaxeartikel 19 % USt", "type": "revenue" }
+    { "id": "account-purchases", "accountNo": "3400", "name": "Praxis- und Verbrauchsmaterial", "type": "expense" },
+    { "id": "account-lab", "accountNo": "4780", "name": "Laborrechnungen", "type": "expense" },
+    { "id": "account-rent", "accountNo": "4210", "name": "Praxisräume / Miete", "type": "expense" },
+    { "id": "account-expenses", "accountNo": "4900", "name": "Sonstige Praxiskosten", "type": "expense" },
+    { "id": "account-sales", "accountNo": "8000", "name": "Behandlungshonorare", "type": "revenue" },
+    { "id": "account-product-sales", "accountNo": "8400", "name": "Verkauf Prophylaxeartikel", "type": "revenue" }
   ],
   "bookings": [
     { "id": "booking-demo-1", "date": "2026-06-01", "documentNo": "BE-1001", "description": "Eröffnungseinlage der Zahnarztpraxis auf Bank", "debitAccountId": "account-bank", "creditAccountId": "account-equity", "amount": 18000, "taxType": "none", "taxMode": "net", "inventoryItemId": null, "inventoryLinkType": "none", "quantity": null, "createdAt": "2026-06-01T09:00:00.000Z" },
@@ -54,19 +54,19 @@
     { "id": "item-needles", "sku": "PRAX-005", "name": "Anästhesie-Kanülen", "category": "Behandlung", "unit": "Packung", "openingStock": 7, "purchasePriceNet": 26, "salePriceNet": 0, "consumptionPerWeek": 3, "leadTimeDays": 8, "safetyStock": 4 }
   ],
   "inventoryMovements": [
-    { "id": "movement-booking-demo-4", "date": "2026-06-05", "itemId": "item-gloves", "type": "in", "quantity": 12, "unitValueNet": 18, "description": "Wareneingang aus Buchung", "documentNo": "BE-1004", "linkedBookingId": "booking-demo-4" },
-    { "id": "movement-booking-demo-5", "date": "2026-06-06", "itemId": "item-disinfectant", "type": "in", "quantity": 6, "unitValueNet": 19, "description": "Wareneingang aus Buchung", "documentNo": "BE-1005", "linkedBookingId": "booking-demo-5" },
-    { "id": "movement-booking-demo-6", "date": "2026-06-07", "itemId": "item-toothbrush", "type": "out", "quantity": 6, "unitValueNet": 3.2, "description": "Lagerabgang aus Buchung", "documentNo": "BE-1006", "linkedBookingId": "booking-demo-6" },
+    { "id": "movement-booking-demo-4", "date": "2026-06-05", "itemId": "item-gloves", "type": "in", "quantity": 12, "unitValueNet": 18, "description": "Material rein aus Vorgang", "documentNo": "BE-1004", "linkedBookingId": "booking-demo-4" },
+    { "id": "movement-booking-demo-5", "date": "2026-06-06", "itemId": "item-disinfectant", "type": "in", "quantity": 6, "unitValueNet": 19, "description": "Material rein aus Vorgang", "documentNo": "BE-1005", "linkedBookingId": "booking-demo-5" },
+    { "id": "movement-booking-demo-6", "date": "2026-06-07", "itemId": "item-toothbrush", "type": "out", "quantity": 6, "unitValueNet": 3.2, "description": "Material raus aus Vorgang", "documentNo": "BE-1006", "linkedBookingId": "booking-demo-6" },
     { "id": "movement-demo-11", "date": "2026-06-17", "itemId": "item-gloves", "type": "out", "quantity": 4, "unitValueNet": 18, "description": "Wochenverbrauch Nitril-Handschuhe", "documentNo": "LG-1011", "linkedBookingId": null },
-    { "id": "movement-booking-demo-12", "date": "2026-06-20", "itemId": "item-toothbrush", "type": "in", "quantity": 30, "unitValueNet": 3.2, "description": "Wareneingang aus Buchung", "documentNo": "BE-1012", "linkedBookingId": "booking-demo-12" },
+    { "id": "movement-booking-demo-12", "date": "2026-06-20", "itemId": "item-toothbrush", "type": "in", "quantity": 30, "unitValueNet": 3.2, "description": "Material rein aus Vorgang", "documentNo": "BE-1012", "linkedBookingId": "booking-demo-12" },
     { "id": "movement-demo-13", "date": "2026-06-25", "itemId": "item-disinfectant", "type": "out", "quantity": 2, "unitValueNet": 19, "description": "Wochenverbrauch Behandlungszimmer", "documentNo": "LG-1013", "linkedBookingId": null },
     { "id": "movement-demo-14", "date": "2026-06-27", "itemId": "item-toothpaste", "type": "in", "quantity": 20, "unitValueNet": 2.8, "description": "Erstbestand Zahnpasta aus Lieferantennachtrag", "documentNo": "LG-1014", "linkedBookingId": null },
-    { "id": "movement-booking-demo-16", "date": "2026-07-03", "itemId": "item-needles", "type": "in", "quantity": 5, "unitValueNet": 26, "description": "Wareneingang aus Buchung", "documentNo": "BE-1016", "linkedBookingId": "booking-demo-16" },
-    { "id": "movement-booking-demo-17", "date": "2026-07-05", "itemId": "item-toothpaste", "type": "out", "quantity": 7, "unitValueNet": 2.8, "description": "Lagerabgang aus Buchung", "documentNo": "BE-1017", "linkedBookingId": "booking-demo-17" },
+    { "id": "movement-booking-demo-16", "date": "2026-07-03", "itemId": "item-needles", "type": "in", "quantity": 5, "unitValueNet": 26, "description": "Material rein aus Vorgang", "documentNo": "BE-1016", "linkedBookingId": "booking-demo-16" },
+    { "id": "movement-booking-demo-17", "date": "2026-07-05", "itemId": "item-toothpaste", "type": "out", "quantity": 7, "unitValueNet": 2.8, "description": "Material raus aus Vorgang", "documentNo": "BE-1017", "linkedBookingId": "booking-demo-17" },
     { "id": "movement-demo-18", "date": "2026-07-08", "itemId": "item-gloves", "type": "out", "quantity": 5, "unitValueNet": 18, "description": "Wochenverbrauch Nitril-Handschuhe", "documentNo": "LG-1018", "linkedBookingId": null },
-    { "id": "movement-booking-demo-21", "date": "2026-07-15", "itemId": "item-gloves", "type": "in", "quantity": 15, "unitValueNet": 18, "description": "Wareneingang aus Buchung", "documentNo": "BE-1021", "linkedBookingId": "booking-demo-21" },
-    { "id": "movement-booking-demo-22", "date": "2026-07-18", "itemId": "item-disinfectant", "type": "in", "quantity": 4, "unitValueNet": 19, "description": "Wareneingang aus Buchung", "documentNo": "BE-1022", "linkedBookingId": "booking-demo-22" },
-    { "id": "movement-booking-demo-23", "date": "2026-07-21", "itemId": "item-toothbrush", "type": "out", "quantity": 8, "unitValueNet": 3.2, "description": "Lagerabgang aus Buchung", "documentNo": "BE-1023", "linkedBookingId": "booking-demo-23" }
+    { "id": "movement-booking-demo-21", "date": "2026-07-15", "itemId": "item-gloves", "type": "in", "quantity": 15, "unitValueNet": 18, "description": "Material rein aus Vorgang", "documentNo": "BE-1021", "linkedBookingId": "booking-demo-21" },
+    { "id": "movement-booking-demo-22", "date": "2026-07-18", "itemId": "item-disinfectant", "type": "in", "quantity": 4, "unitValueNet": 19, "description": "Material rein aus Vorgang", "documentNo": "BE-1022", "linkedBookingId": "booking-demo-22" },
+    { "id": "movement-booking-demo-23", "date": "2026-07-21", "itemId": "item-toothbrush", "type": "out", "quantity": 8, "unitValueNet": 3.2, "description": "Material raus aus Vorgang", "documentNo": "BE-1023", "linkedBookingId": "booking-demo-23" }
   ],
   "progress": { "completedSteps": [], "lastUpdated": null },
   "settings": { "exportedAt": null, "createdAt": "2026-07-02T00:00:00.000Z", "lastSavedAt": null }

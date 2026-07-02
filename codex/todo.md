@@ -31,6 +31,7 @@
 - [x] Journal-Spalten an Netto, Steuer und Brutto anpassen
 - [x] Bearbeiten-Modus mit sauberem Formularzustand erhalten
 - [x] Freundliches Zahnarztpraxis-Design anwenden
+- [x] UI-Begriffe für Anfänger vereinfachen
 - [ ] Responsive Tabellen nach Test auf kleinen Viewports nacharbeiten
 
 ## Tests

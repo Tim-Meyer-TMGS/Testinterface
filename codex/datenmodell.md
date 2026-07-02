@@ -16,13 +16,13 @@
 ## Konto
 - `id`: stabile technische ID
 - `accountNo`: SKR03-nahe Kontonummer
-- `name`: Anzeigename
+- `name`: einsteigerfreundlicher Anzeigename, z. B. `Offene Patientenrechnungen`
 - `type`: `asset`, `liability`, `revenue`, `expense` oder `tax`
 - `debitTotal`, `creditTotal`, `balance`: berechnete Werte, nicht führende Eingabedaten
 
 ## Buchung
 - `id`, `date`, `documentNo`, `description`
-- `debitAccountId`, `creditAccountId`
+- `debitAccountId`, `creditAccountId`: intern Soll/Haben; in der UI als Zielkonto und Gegenkonto benannt
 - `amount`: Eingabebetrag
 - `taxType`: `none`, `vat19`, `vat7`, `input19`, `input7`
 - `taxMode`: `net` oder `gross`
@@ -33,6 +33,7 @@
 
 ## Buchungszeilen
 - Buchungszeilen werden aus Buchungen abgeleitet.
+- Die UI verwendet Anfängerbegriffe, die abgeleiteten Zeilen bleiben fachlich Soll/Haben.
 - Umsatzsteuer-Buchung: Bank/Forderung brutto im Soll, Erlös netto und Umsatzsteuer im Haben.
 - Vorsteuer-Buchung: Aufwand/Ware netto und Vorsteuer im Soll, Verbindlichkeit/Bank brutto im Haben.
 - Buchungen ohne Steuer: Soll und Haben jeweils mit Bruttobetrag.
@@ -49,6 +50,6 @@
 ## Seed-Beispiel
 - Das Standardbeispiel bildet rund zwei Monate Zahnarztpraxisbetrieb ab.
 - Behandlungshonorare, KZV-Abschläge und Privatabrechnungen laufen ohne Umsatzsteuer.
-- Verkäufe von Prophylaxeartikeln laufen mit Umsatzsteuer und Lagerabgang.
+- Verkäufe von Prophylaxeartikeln laufen mit Umsatzsteuer und Materialabgang.
 - Einkäufe von Praxis- und Verbrauchsmaterial laufen mit Vorsteuer und optionalem Lagerzugang.
 - Interne Materialverbräuche werden als Lagerbewegungen geführt; Zahlungen an Lieferanten werden separat gebucht.

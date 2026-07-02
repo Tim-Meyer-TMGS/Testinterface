@@ -59,7 +59,7 @@ export function createMovementFromBooking(booking, item) {
     type: booking.inventoryLinkType,
     quantity,
     unitValueNet: Number(item.purchasePriceNet || 0),
-    description: booking.inventoryLinkType === 'out' ? 'Lagerabgang aus Buchung' : 'Wareneingang aus Buchung',
+    description: booking.inventoryLinkType === 'out' ? 'Material raus aus Vorgang' : 'Material rein aus Vorgang',
     documentNo: booking.documentNo || '',
     linkedBookingId: booking.id
   };
@@ -83,7 +83,7 @@ export function validateMovement(movement, state, ignoreLinkedBookingId = null) 
   if (movement.type === 'adjustment' && Number(movement.quantity) === 0) return 'Bitte eine Bestandskorrektur ungleich 0 eingeben.';
   if (Number(movement.unitValueNet) < 0) return 'Der Einzelwert darf nicht negativ sein.';
   if (movement.type === 'out' && Number(movement.quantity) > getInventoryStock(state, movement.itemId, ignoreLinkedBookingId)) {
-    return 'Der Lagerbestand reicht für diesen Abgang nicht aus.';
+    return 'Der Materialbestand reicht für diese Entnahme nicht aus.';
   }
   return null;
 }

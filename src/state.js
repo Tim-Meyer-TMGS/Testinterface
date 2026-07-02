@@ -145,7 +145,7 @@ export function validateState(state) {
     bookingIds.add(booking.id);
     if (!booking.date || !booking.description) return 'Alle Buchungen benötigen Datum und Beschreibung.';
     if (!accountIds.has(booking.debitAccountId) || !accountIds.has(booking.creditAccountId)) return `Buchung ${booking.documentNo} verweist auf ein fehlendes Konto.`;
-    if (booking.debitAccountId === booking.creditAccountId) return `Buchung ${booking.documentNo} nutzt dasselbe Soll- und Haben-Konto.`;
+    if (booking.debitAccountId === booking.creditAccountId) return `Buchung ${booking.documentNo} nutzt dasselbe Ziel- und Gegenkonto.`;
     if (Number(booking.amount) <= 0) return `Buchung ${booking.documentNo} benötigt einen Betrag größer 0.`;
     if (booking.inventoryItemId && !itemIds.has(booking.inventoryItemId)) return `Buchung ${booking.documentNo} verweist auf einen fehlenden Artikel.`;
   }

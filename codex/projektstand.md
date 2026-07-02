@@ -3,19 +3,19 @@
 ## App-Übersicht
 - Name: Praxisbuchhaltung.
 - Zweck: Browserbasierte Lern- und Übungs-App für Buchhaltung, Zahlungen und Lager einer Zahnarztpraxis.
-- Zielgruppe: Nutzer, die typische Praxisvorgänge buchhalterisch nachvollziehen und üben wollen.
+- Zielgruppe: Einsteiger ohne Buchführungsvorwissen, die typische Praxisvorgänge schrittweise nachvollziehen und üben wollen.
 - Plattform: Statische Web-App für GitHub Pages; keine Backend-Pflicht.
 - Speicher: Standardmäßig `localStorage` im Browser, zusätzlich JSON-Export und JSON-Import.
 - Beispieldaten: Rund zwei Monate Zahnarztpraxisbetrieb mit Behandlungshonoraren, KZV-Abschlägen, Privatforderungen, Prophylaxeverkäufen, Materialeinkäufen, Labor, Miete und Praxissoftware.
-- Fachlicher Rahmen: SKR03-nahe Übungsbuchhaltung mit Soll/Haben, Netto/Brutto, Umsatzsteuer, Vorsteuer und praxisbezogenen Konten.
-- Lager: Praxislager für Hygiene-, Behandlungs- und Prophylaxeartikel mit Zugängen, Abgängen, Bestandsprüfung und Nachbestellhinweisen.
+- Fachlicher Rahmen: Praxisnaher Übungskontenplan mit sichtbaren Buchführungsbegriffen, aber einsteigerfreundlichen Bezeichnungen wie Zielkonto, Gegenkonto, Einnahme, Ausgabe und offene Rechnung.
+- Lager: Praxislager für Hygiene-, Behandlungs- und Prophylaxeartikel mit Material rein/raus, Bestandsprüfung und Nachbestellhinweisen.
 - Import/Export: JSON für vollständige Datensicherung, CSV für Journal und Lagerbestand.
 - Tests: Node-basierte Unit- und Browser-Tests laufen über GitHub Actions.
 
 ## Hauptbereiche
 - Dashboard: Überblick über Kasse, Bank, Forderungen, Verbindlichkeiten, Lagerwert, Buchungshistorie und Bestände.
-- Konten: Kontenliste, Salden, Soll/Haben-Summen und Kontendetails.
-- Buchungen: Erfassung, Bearbeitung, Duplizierung und Löschung von Geschäftsvorfällen inklusive Steuer- und Lagerwirkung.
+- Konten: Bereiche und Salden mit Kontonummern, aber vereinfachten Typen wie Geld/Bestand, Einnahme, Ausgabe und offene Rechnung.
+- Buchungen: Erfassung, Bearbeitung, Duplizierung und Löschung von Praxisvorgängen inklusive Steuer- und Lagerwirkung.
 - Zahlungen: Schnellerfassung von Einzahlungen, Abbuchungen und Umbuchungen.
 - Lager: Artikelverwaltung, Lagerbewegungen, Bestandskorrekturen, Verbrauch und Nachbestellung.
 - Export / Import: JSON- und CSV-Ausgabe sowie JSON-Wiederherstellung.
@@ -43,9 +43,10 @@
 - SKR03-nahe Seed-Konten mit eindeutigen Kontonummern angelegt und auf Zahnarztpraxisbetrieb erweitert.
 - Beispieldaten bilden rund zwei Monate Praxisbetrieb ab: Behandlungshonorare, KZV-Abschläge, Privatforderungen, Prophylaxeverkäufe, Materialeinkäufe, Labor, Miete und Praxissoftware.
 - Das Design ist freundlicher und thematisch auf Zahnarztpraxis, Hygiene und Praxislager ausgerichtet.
+- Die Oberfläche wurde für Anfänger vereinfacht: Vorgänge statt abstrakter Buchungen, Zielkonto/Gegenkonto statt isoliertem Soll/Haben, Material rein/raus statt Wareneingang/Lagerabgang.
 - Steuerberechnung für netto/brutto sowie Umsatzsteuer/Vorsteuer in Kernlogik ausgelagert.
 - Buchungssalden werden aus Buchungszeilen abgeleitet, nicht mehr nur aus einem Betrag.
-- Lagerwirkung bei Buchungen ist explizit: kein Lager, Wareneingang oder Lagerabgang.
+- Lagerwirkung bei Vorgängen ist explizit: kein Lager, Material kommt rein oder Material geht raus.
 - Lagerabgänge werden gegen verfügbaren Bestand validiert.
 - Verknüpfte Lagerbewegungen werden beim Speichern, Duplizieren und Löschen von Buchungen synchronisiert.
 - Dynamische Tabellen werden über DOM-Knoten aufgebaut, nicht über ungeprüfte HTML-Strings.
@@ -57,7 +58,7 @@
 ## Bekannte Einschränkungen
 - Die App ist eine Lern-App, keine GoBD- oder revisionssichere Buchhaltung.
 - Der Servermodus ist vorbereitet, aber die UI nutzt standardmäßig weiter `localStorage`.
-- Die Steuerkonten sind didaktisch SKR03-nah, aber kein vollständiger Kontenrahmen.
+- Die Konten sind didaktisch SKR03-nah, aber bewusst als vereinfachter Übungskontenplan benannt und kein vollständiger Kontenrahmen.
 - Automatisierte Tests laufen nicht lokal, sondern über GitHub Actions nach Push/PR.
 
 ## Nächster sinnvoller Schritt

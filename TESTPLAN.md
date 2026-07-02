@@ -15,47 +15,47 @@
 6. Einmal `Einstellungen > Daten zurücksetzen` ausführen, falls im Browser noch alte LocalStorage-Daten liegen.
 
 ## Seed-Daten-Prüfung
-- Das Beispiel enthält 27 Buchungen über Juni und Juli 2026.
+- Das Beispiel enthält 27 Vorgänge über Juni und Juli 2026.
 - Erwartete Bereiche: Behandlungserlöse, KZV-Zahlungen, Privatforderungen, Prophylaxeverkäufe, Materialeinkäufe, Miete, Labor und Software.
 - Lagerbestände dürfen nach Seed-Import nicht negativ sein.
 
 ## Manuelle Akzeptanztests
 
-### Buchung mit Umsatzsteuer
-1. Buchung erstellen: Kasse an Verkauf Prophylaxeartikel, 119 EUR brutto, 19 % Umsatzsteuer.
+### Verkauf mit Umsatzsteuer
+1. Vorgang erstellen: Kasse an Verkauf Prophylaxeartikel, 119 EUR brutto, 19 % Umsatzsteuer.
 2. Kassen-Saldo steigt um 119 EUR.
 3. Erlöse-Saldo steigt um 100 EUR.
 4. Umsatzsteuer-Saldo steigt um 19 EUR.
 
-### Buchung mit Vorsteuer
-1. Buchung erstellen: Wareneingang an Verbindlichkeiten, 100 EUR netto, 19 % Vorsteuer.
-2. Wareneingang steigt um 100 EUR.
+### Einkauf mit Vorsteuer
+1. Vorgang erstellen: Praxis- und Verbrauchsmaterial an Offene Lieferantenrechnungen, 100 EUR netto, 19 % Vorsteuer.
+2. Materialkosten steigen um 100 EUR.
 3. Vorsteuer steigt um 19 EUR.
 4. Verbindlichkeiten steigen um 119 EUR.
 
-### Lagerzugang über Buchung
+### Materialzugang über Vorgang
 1. Artikel auswählen.
-2. Lagerwirkung `Wareneingang` und Menge 5 buchen.
-3. Eine verknüpfte Lagerbewegung entsteht.
+2. Lagerwirkung `Material kommt rein` und Menge 5 buchen.
+3. Eine verknüpfte Materialbewegung entsteht.
 4. Bestand steigt um 5.
 
-### Lagerabgang über Buchung
+### Materialabgang über Vorgang
 1. Artikel `Prophylaxe-Zahnbürsten` auswählen.
-2. Lagerwirkung `Lagerabgang` und verfügbare Menge buchen.
+2. Lagerwirkung `Material geht raus` und verfügbare Menge buchen.
 3. Bestand sinkt entsprechend.
 4. Eine Menge über Bestand wird abgelehnt.
 
 ### Bearbeiten, Duplizieren, Löschen
-1. Buchung mit Lagerwirkung bearbeiten.
-2. Verknüpfte Lagerbewegung wird aktualisiert.
-3. Buchung duplizieren.
-4. Neue verknüpfte Lagerbewegung entsteht.
-5. Buchung löschen.
-6. Zugehörige Lagerbewegung wird entfernt.
+1. Vorgang mit Lagerwirkung bearbeiten.
+2. Verknüpfte Materialbewegung wird aktualisiert.
+3. Vorgang duplizieren.
+4. Neue verknüpfte Materialbewegung entsteht.
+5. Vorgang löschen.
+6. Zugehörige Materialbewegung wird entfernt.
 
 ### Import / Export
 1. JSON exportieren.
 2. Daten zurücksetzen.
 3. Exportierte Datei importieren.
-4. Konten, Buchungen, Artikel und Lagerbewegungen sind wieder vorhanden.
+4. Bereiche, Vorgänge, Artikel und Materialbewegungen sind wieder vorhanden.
 5. Ungültige Referenzen im Import werden abgelehnt.

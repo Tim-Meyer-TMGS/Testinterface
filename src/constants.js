@@ -25,40 +25,40 @@ export const INVENTORY_LINK_TYPES = ['none', 'in', 'out'];
 export const MOVEMENT_TYPES = ['in', 'out', 'adjustment'];
 
 export const TYPE_LABELS = {
-  asset: 'Aktivkonto',
-  liability: 'Passivkonto',
-  revenue: 'Ertragskonto',
-  expense: 'Aufwandskonto',
-  tax: 'Steuerkonto'
+  asset: 'Geld oder Bestand',
+  liability: 'Offene Rechnung',
+  revenue: 'Einnahme',
+  expense: 'Ausgabe',
+  tax: 'Steuer'
 };
 
 export const TAX_LABELS = {
   none: 'Keine Steuer',
-  vat19: '19 % Umsatzsteuer',
-  vat7: '7 % Umsatzsteuer',
-  input19: '19 % Vorsteuer',
-  input7: '7 % Vorsteuer'
+  vat19: '19 % Umsatzsteuer (Verkauf)',
+  vat7: '7 % Umsatzsteuer (Verkauf)',
+  input19: '19 % Vorsteuer (Einkauf)',
+  input7: '7 % Vorsteuer (Einkauf)'
 };
 
 export const INVENTORY_LINK_LABELS = {
   none: 'Kein Lager',
-  in: 'Wareneingang',
-  out: 'Lagerabgang'
+  in: 'Material kommt rein',
+  out: 'Material geht raus'
 };
 
 export const DEFAULT_ACCOUNTS = [
   { id: ACCOUNT_IDS.cash, accountNo: '1000', name: 'Kasse', type: 'asset' },
   { id: ACCOUNT_IDS.bank, accountNo: '1200', name: 'Bank', type: 'asset' },
-  { id: ACCOUNT_IDS.receivables, accountNo: '1400', name: 'Forderungen aus Lieferungen und Leistungen', type: 'asset' },
-  { id: ACCOUNT_IDS.payables, accountNo: '1600', name: 'Verbindlichkeiten aus Lieferungen und Leistungen', type: 'liability' },
-  { id: ACCOUNT_IDS.inputVat, accountNo: '1576', name: 'Abziehbare Vorsteuer 19 %', type: 'tax' },
-  { id: ACCOUNT_IDS.vat, accountNo: '1776', name: 'Umsatzsteuer 19 %', type: 'tax' },
+  { id: ACCOUNT_IDS.receivables, accountNo: '1400', name: 'Offene Patientenrechnungen', type: 'asset' },
+  { id: ACCOUNT_IDS.payables, accountNo: '1600', name: 'Offene Lieferantenrechnungen', type: 'liability' },
+  { id: ACCOUNT_IDS.inputVat, accountNo: '1576', name: 'Vorsteuer aus Einkäufen 19 %', type: 'tax' },
+  { id: ACCOUNT_IDS.vat, accountNo: '1776', name: 'Umsatzsteuer aus Verkäufen 19 %', type: 'tax' },
   { id: ACCOUNT_IDS.equity, accountNo: '0800', name: 'Eigenkapital', type: 'liability' },
-  { id: ACCOUNT_IDS.inventory, accountNo: '3980', name: 'Warenbestand', type: 'asset' },
-  { id: ACCOUNT_IDS.purchases, accountNo: '3400', name: 'Praxis- und Verbrauchsmaterial 19 % Vorsteuer', type: 'expense' },
-  { id: ACCOUNT_IDS.lab, accountNo: '4780', name: 'Fremdlabor und zahntechnische Leistungen', type: 'expense' },
-  { id: ACCOUNT_IDS.rent, accountNo: '4210', name: 'Praxisräume Miete', type: 'expense' },
-  { id: ACCOUNT_IDS.expenses, accountNo: '4900', name: 'Sonstige betriebliche Aufwendungen', type: 'expense' },
-  { id: ACCOUNT_IDS.sales, accountNo: '8000', name: 'Behandlungserlöse Zahnarztpraxis', type: 'revenue' },
-  { id: ACCOUNT_IDS.productSales, accountNo: '8400', name: 'Verkauf Prophylaxeartikel 19 % USt', type: 'revenue' }
+  { id: ACCOUNT_IDS.inventory, accountNo: '3980', name: 'Praxislager', type: 'asset' },
+  { id: ACCOUNT_IDS.purchases, accountNo: '3400', name: 'Praxis- und Verbrauchsmaterial', type: 'expense' },
+  { id: ACCOUNT_IDS.lab, accountNo: '4780', name: 'Laborrechnungen', type: 'expense' },
+  { id: ACCOUNT_IDS.rent, accountNo: '4210', name: 'Praxisräume / Miete', type: 'expense' },
+  { id: ACCOUNT_IDS.expenses, accountNo: '4900', name: 'Sonstige Praxiskosten', type: 'expense' },
+  { id: ACCOUNT_IDS.sales, accountNo: '8000', name: 'Behandlungshonorare', type: 'revenue' },
+  { id: ACCOUNT_IDS.productSales, accountNo: '8400', name: 'Verkauf Prophylaxeartikel', type: 'revenue' }
 ];
