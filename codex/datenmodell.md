@@ -45,3 +45,10 @@
 ## Import und Export
 - JSON-Import wird normalisiert und referenziell geprüft.
 - CSV-Export quotet alle Zellen und entschärft Werte, die in Tabellenkalkulationen als Formel interpretiert werden könnten.
+
+## Seed-Beispiel
+- Das Standardbeispiel bildet rund zwei Monate Zahnarztpraxisbetrieb ab.
+- Behandlungshonorare, KZV-Abschläge und Privatabrechnungen laufen ohne Umsatzsteuer.
+- Verkäufe von Prophylaxeartikeln laufen mit Umsatzsteuer und Lagerabgang.
+- Einkäufe von Praxis- und Verbrauchsmaterial laufen mit Vorsteuer und optionalem Lagerzugang.
+- Interne Materialverbräuche werden als Lagerbewegungen geführt; Zahlungen an Lieferanten werden separat gebucht.

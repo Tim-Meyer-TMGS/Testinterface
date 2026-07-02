@@ -7,7 +7,9 @@
 - Die App bleibt statisch lauffähig und nutzt `localStorage` als Standard-Speicher.
 
 ## Umgesetzte Sanierung
-- SKR03-nahe Seed-Konten mit eindeutigen Kontonummern angelegt.
+- SKR03-nahe Seed-Konten mit eindeutigen Kontonummern angelegt und auf Zahnarztpraxisbetrieb erweitert.
+- Beispieldaten bilden rund zwei Monate Praxisbetrieb ab: Behandlungshonorare, KZV-Abschläge, Privatforderungen, Prophylaxeverkäufe, Materialeinkäufe, Labor, Miete und Praxissoftware.
+- Das Design ist freundlicher und thematisch auf Zahnarztpraxis, Hygiene und Praxislager ausgerichtet.
 - Steuerberechnung für netto/brutto sowie Umsatzsteuer/Vorsteuer in Kernlogik ausgelagert.
 - Buchungssalden werden aus Buchungszeilen abgeleitet, nicht mehr nur aus einem Betrag.
 - Lagerwirkung bei Buchungen ist explizit: kein Lager, Wareneingang oder Lagerabgang.
@@ -17,14 +19,15 @@
 - Import, Normalisierung und CSV-Export wurden robuster gemacht.
 - `server.js` ist auf ES-Module umgestellt; Schreibzugriff auf `/api/data` ist standardmäßig deaktiviert.
 - npm-Tooling mit Vite, Vitest und Playwright ist vorbereitet.
+- GitHub Actions führt die Node-basierten Tests aus, weil lokal kein Node.js installiert werden kann.
 
 ## Bekannte Einschränkungen
 - Die App ist eine Lern-App, keine GoBD- oder revisionssichere Buchhaltung.
 - Der Servermodus ist vorbereitet, aber die UI nutzt standardmäßig weiter `localStorage`.
 - Die Steuerkonten sind didaktisch SKR03-nah, aber kein vollständiger Kontenrahmen.
-- Automatisierte Tests können erst lokal laufen, wenn Node.js und npm installiert sind.
+- Automatisierte Tests laufen nicht lokal, sondern über GitHub Actions nach Push/PR.
 
 ## Nächster sinnvoller Schritt
-- Node.js installieren bzw. in den PATH aufnehmen.
-- `npm install`, `npm test` und `npm run test:e2e` ausführen.
-- Danach fachliche Detailfälle ergänzen, z. B. 7-%-Erlöse und Storno-Workflows.
+- Änderungen pushen und den Workflow `Test` in GitHub Actions prüfen.
+- Falls CI fehlschlägt, die Logs auswerten und gezielt nachbessern.
+- Danach GitHub Pages öffnen und den manuellen Akzeptanztest aus `TESTPLAN.md` durchführen.

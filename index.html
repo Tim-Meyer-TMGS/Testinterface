@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Übungsbuchhaltung</title>
+    <title>Praxisbuchhaltung</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div class="app-shell">
       <aside class="sidebar" id="sidebar">
         <div class="brand">
-          <h1>Übungsbuchhaltung</h1>
-          <p>Browserbasierte Übungsplattform</p>
+          <h1>Praxisbuchhaltung</h1>
+          <p>Zahnarztpraxis · Buchhaltung & Lager</p>
         </div>
         <nav class="nav" aria-label="Hauptnavigation">
           <button class="nav-button active" data-view="dashboard">Dashboard</button>
@@ -29,7 +29,7 @@
           <div class="topbar-left">
             <button class="menu-toggle" id="menu-toggle" aria-label="Navigation umschalten" aria-expanded="false">☰</button>
             <div>
-              <p class="eyebrow">Übungsplattform</p>
+              <p class="eyebrow">Zahnarztpraxis</p>
               <h2 id="page-title">Dashboard</h2>
             </div>
           </div>
@@ -61,7 +61,7 @@
             </div>
             <div class="card">
               <div class="section-header">
-                <h3>Fiktiver Lagerbestand</h3>
+                <h3>Praxislager</h3>
               </div>
               <div class="table-wrapper">
                 <table>
@@ -98,7 +98,7 @@
             </div>
             <div class="card">
               <div class="section-header">
-                <h3>Artikelübersicht</h3>
+                <h3>Material- und Prophylaxeartikel</h3>
               </div>
               <div class="table-wrapper">
                 <table>
@@ -117,7 +117,7 @@
             </div>
             <div class="card">
               <div class="section-header">
-                <h3>Bestandsübersicht</h3>
+                <h3>Bestandsübersicht Praxisbedarf</h3>
               </div>
               <div class="table-wrapper">
                 <table>
@@ -273,7 +273,7 @@
                   Menge
                   <input id="booking-quantity" name="bookingQuantity" type="number" step="0.01" />
                 </label>
-                <div class="full-width small">Wenn du einen Lagerartikel auswählst, wird der Bestand automatisch über die Buchung aktualisiert.</div>
+                <div class="full-width small">Wenn du einen Lagerartikel und eine Lagerwirkung auswählst, wird der Praxisbestand automatisch über die Buchung aktualisiert.</div>
                 <div class="tax-summary full-width" id="booking-tax-summary"></div>
                 <div class="form-actions full-width">
                   <button type="submit">Buchung speichern</button>
@@ -392,7 +392,7 @@
               <div class="section-header">
                 <h3>Artikelverwaltung</h3>
               </div>
-              <div class="small">Pflege von Artikeln, Preisen und Beständen an einem Ort.</div>
+              <div class="small">Pflege von Hygienematerial, Behandlungsbedarf und Prophylaxeartikeln an einem Ort.</div>
               <form id="inventory-item-form" class="form-grid">
                 <input id="inventory-item-id" name="inventoryItemId" type="hidden" />
                 <label>

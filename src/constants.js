@@ -8,8 +8,11 @@ export const ACCOUNT_IDS = {
   payables: 'account-payables',
   purchases: 'account-purchases',
   sales: 'account-sales',
+  productSales: 'account-product-sales',
   inventory: 'account-inventory',
   expenses: 'account-expenses',
+  rent: 'account-rent',
+  lab: 'account-lab',
   vat: 'account-vat',
   inputVat: 'account-input-vat',
   equity: 'account-equity'
@@ -52,7 +55,10 @@ export const DEFAULT_ACCOUNTS = [
   { id: ACCOUNT_IDS.vat, accountNo: '1776', name: 'Umsatzsteuer 19 %', type: 'tax' },
   { id: ACCOUNT_IDS.equity, accountNo: '0800', name: 'Eigenkapital', type: 'liability' },
   { id: ACCOUNT_IDS.inventory, accountNo: '3980', name: 'Warenbestand', type: 'asset' },
-  { id: ACCOUNT_IDS.purchases, accountNo: '3400', name: 'Wareneingang 19 % Vorsteuer', type: 'expense' },
+  { id: ACCOUNT_IDS.purchases, accountNo: '3400', name: 'Praxis- und Verbrauchsmaterial 19 % Vorsteuer', type: 'expense' },
+  { id: ACCOUNT_IDS.lab, accountNo: '4780', name: 'Fremdlabor und zahntechnische Leistungen', type: 'expense' },
+  { id: ACCOUNT_IDS.rent, accountNo: '4210', name: 'Praxisräume Miete', type: 'expense' },
   { id: ACCOUNT_IDS.expenses, accountNo: '4900', name: 'Sonstige betriebliche Aufwendungen', type: 'expense' },
-  { id: ACCOUNT_IDS.sales, accountNo: '8400', name: 'Erlöse 19 % Umsatzsteuer', type: 'revenue' }
+  { id: ACCOUNT_IDS.sales, accountNo: '8000', name: 'Behandlungserlöse Zahnarztpraxis', type: 'revenue' },
+  { id: ACCOUNT_IDS.productSales, accountNo: '8400', name: 'Verkauf Prophylaxeartikel 19 % USt', type: 'revenue' }
 ];
