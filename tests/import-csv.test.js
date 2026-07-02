@@ -13,7 +13,18 @@ describe('Import und CSV', () => {
     expect(validateState(state)).toContain('fehlendes Konto');
   });
 
-  it('escaped CSV-Zellen und entschärft Formeln', () => {
+  it('ergaenzt Standardkonten ohne Kontonummern zu duplizieren', () => {
+    const state = normalizeState({
+      accounts: [{ id: 'custom-cash', accountNo: '1000', name: 'Eigene Kasse', type: 'asset' }],
+      bookings: [],
+      inventoryItems: [],
+      inventoryMovements: []
+    });
+    const accountNumbers = state.accounts.map((account) => account.accountNo);
+    expect(new Set(accountNumbers).size).toBe(accountNumbers.length);
+  });
+
+  it('escaped CSV-Zellen und entschaerft Formeln', () => {
     expect(toCsv([['Beschreibung'], ['=1+1;"x"']])).toBe('"Beschreibung"\n"\'=1+1;""x"""');
   });
 });

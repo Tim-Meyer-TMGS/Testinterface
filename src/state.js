@@ -95,9 +95,12 @@ export function normalizeState(parsed) {
   if (!parsed || typeof parsed !== 'object') return fallback;
   const rawAccounts = (Array.isArray(parsed.accounts) && parsed.accounts.length ? parsed.accounts : fallback.accounts).map(normalizeAccount);
   const existingAccountIds = new Set(rawAccounts.map((account) => account.id));
+  const existingAccountNos = new Set(rawAccounts.map((account) => account.accountNo));
   const accounts = [
     ...rawAccounts,
-    ...DEFAULT_ACCOUNTS.filter((account) => !existingAccountIds.has(account.id)).map(normalizeAccount)
+    ...DEFAULT_ACCOUNTS
+      .filter((account) => !existingAccountIds.has(account.id) && !existingAccountNos.has(account.accountNo))
+      .map(normalizeAccount)
   ];
   const bookings = (Array.isArray(parsed.bookings) ? parsed.bookings : []).map((booking) => normalizeBooking(booking, parsed.bookings || []));
   return {
