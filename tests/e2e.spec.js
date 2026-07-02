@@ -31,3 +31,20 @@ test('Details aus Dashboard und Journal im Modal öffnen', async ({ page }) => {
   await page.locator('#detail-modal-backdrop').click({ position: { x: 4, y: 4 } });
   await expect(page.getByRole('dialog')).toBeHidden();
 });
+
+test('Neuer Vorgang erscheint im Änderungsprotokoll', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Vorgänge' }).click();
+  await page.locator('#booking-date').fill('2026-06-30');
+  await page.locator('#booking-document').fill('BE-E2E-AUDIT');
+  await page.locator('#booking-description').fill('Audit Test Behandlung');
+  await page.locator('#booking-amount').fill('100');
+  await page.locator('#booking-tax-type').selectOption('none');
+  await page.getByRole('button', { name: 'Vorgang speichern' }).click();
+
+  await page.getByRole('button', { name: 'Einstellungen' }).click();
+  await expect(page.locator('#audit-log-list')).toContainText('Audit Test Behandlung');
+  await page.locator('#audit-log-list tr').first().click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('#detail-modal-title')).toContainText('BE-E2E-AUDIT');
+});

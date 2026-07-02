@@ -9,18 +9,19 @@
 - Beispieldaten: Rund zwei Monate Zahnarztpraxisbetrieb im Mai/Juni 2026 mit Behandlungshonoraren, KZV-Abschlägen, Privatforderungen, Prophylaxeverkäufen, Materialeinkäufen, Labor, Miete und Praxissoftware.
 - Fachlicher Rahmen: Praxisnaher Übungskontenplan mit sichtbaren Buchführungsbegriffen, aber einsteigerfreundlichen Bezeichnungen wie Zielkonto, Gegenkonto, Einnahme, Ausgabe und offene Rechnung.
 - Lager: Praxislager für Hygiene-, Behandlungs- und Prophylaxeartikel mit Material rein/raus, Bestandsprüfung und Nachbestellhinweisen.
+- Änderungsprotokoll: Kontobezogene Änderungen an Vorgängen, Zahlungen, Bereichen und Systemaktionen werden nachvollziehbar angezeigt.
 - Import/Export: JSON für vollständige Datensicherung, CSV für Journal und Lagerbestand.
 - Tests: Node-basierte Unit- und Browser-Tests laufen über GitHub Actions.
 
 ## Hauptbereiche
 - Dashboard: Aufgeräumter Einstieg mit Gesamt-Saldo, vier Kernzahlen, letzten Vorgängen und Materialhinweisen.
-- Konten: Bereiche und Salden mit Kontonummern, aber vereinfachten Typen wie Geld/Bestand, Einnahme, Ausgabe und offene Rechnung.
+- Konten: Bereiche und Salden mit Kontonummern, vereinfachten Typen und einer kontobezogenen Änderungsliste.
 - Buchungen: Erfassung, Bearbeitung, Duplizierung und Löschung von Praxisvorgängen inklusive Steuer- und Lagerwirkung.
 - Zahlungen: Schnellerfassung von Einzahlungen, Abbuchungen und Umbuchungen.
 - Lager: Artikelverwaltung, Lagerbewegungen, Bestandskorrekturen, Verbrauch und Nachbestellung.
 - Globale Details: Buchungen, Bereiche, Zahlungen, Artikel und Materialbewegungen öffnen eine zentrale Detailansicht als Modal, ohne die Hauptansicht zu verlassen.
 - Export / Import: JSON- und CSV-Ausgabe sowie JSON-Wiederherstellung.
-- Einstellungen: Daten zurücksetzen und Beispieldaten neu laden.
+- Einstellungen: Daten zurücksetzen, Beispieldaten neu laden und globales Änderungsprotokoll einsehen.
 
 ## Architektur
 - `index.html`: Statische Oberfläche und Formular-/Tabellenstruktur.
@@ -28,6 +29,7 @@
 - `app.js`: UI- und Event-Schicht; rendert DOM sicher ohne ungeprüftes `innerHTML`.
 - `src/accounting.js`: Steuerberechnung, Buchungszeilen und Kontensalden.
 - `src/inventory.js`: Lagerbestände, Bestandsprüfung und Synchronisierung verknüpfter Lagerbewegungen.
+- `src/audit.js`: Hilfslogik für kontobezogene Protokolleinträge und kompakte Vorher/Nachher-Snapshots.
 - `src/state.js`: State-Erzeugung, Normalisierung, IDs und Importvalidierung.
 - `src/storage.js`: LocalStorage-Adapter und vorbereiteter Server-Adapter.
 - `data/app-data.json`: Seed-Daten für das Praxisbeispiel.
@@ -48,6 +50,8 @@
 - Die Oberfläche wurde für Anfänger vereinfacht: Vorgänge statt abstrakter Buchungen, Zielkonto/Gegenkonto statt isoliertem Soll/Haben, Material rein/raus statt Wareneingang/Lagerabgang.
 - Das Dashboard wurde als Startansicht aufgeräumt und zeigt einen vereinfachten Gesamt-Saldo: Kasse + Bank + offene Patientenrechnungen + Materialwert minus offene Lieferantenrechnungen.
 - Globale Detailansichten wurden als ein zentrales Modal umgesetzt; verknüpfte Datensätze können innerhalb des Modals weiter geöffnet werden.
+- Kontobezogenes Änderungsprotokoll umgesetzt: Vorgänge, Zahlungen, Bereichsänderungen, Import, Reset und Beispieldatenladen erzeugen lesbare Protokolleinträge.
+- Konto-Modal, Bereichsdetails und Einstellungen zeigen Protokolleinträge; Einträge öffnen ein Detail-Modal mit betroffenen Bereichen sowie Vorher/Nachher-Daten.
 - Steuerberechnung für netto/brutto sowie Umsatzsteuer/Vorsteuer in Kernlogik ausgelagert.
 - Buchungssalden werden aus Buchungszeilen abgeleitet, nicht mehr nur aus einem Betrag.
 - Lagerwirkung bei Vorgängen ist explizit: kein Lager, Material kommt rein oder Material geht raus.

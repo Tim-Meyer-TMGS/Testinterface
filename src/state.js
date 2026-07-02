@@ -1,5 +1,6 @@
 import { ACCOUNT_TYPES, DEFAULT_ACCOUNTS, INVENTORY_LINK_TYPES, MOVEMENT_TYPES, TAX_MODES, TAX_TYPES } from './constants.js';
 import { normalizeBookingAmounts, validateAccount } from './accounting.js';
+import { normalizeAuditLog } from './audit.js';
 
 export function generateId(prefix) {
   if (globalThis.crypto?.randomUUID) return `${prefix}-${globalThis.crypto.randomUUID().slice(0, 8)}`;
@@ -13,6 +14,7 @@ export function createInitialState() {
     bookings: [],
     inventoryItems: [],
     inventoryMovements: [],
+    auditLog: [],
     progress: { completedSteps: [], lastUpdated: null },
     settings: { exportedAt: null, createdAt: new Date().toISOString(), lastSavedAt: null }
   };
@@ -109,6 +111,7 @@ export function normalizeState(parsed) {
     bookings,
     inventoryItems: (Array.isArray(parsed.inventoryItems) ? parsed.inventoryItems : []).map(normalizeItem),
     inventoryMovements: (Array.isArray(parsed.inventoryMovements) ? parsed.inventoryMovements : []).map(normalizeMovement),
+    auditLog: normalizeAuditLog(parsed.auditLog),
     progress: {
       completedSteps: Array.isArray(parsed.progress?.completedSteps) ? parsed.progress.completedSteps : [],
       lastUpdated: parsed.progress?.lastUpdated || null

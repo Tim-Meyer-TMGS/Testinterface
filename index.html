@@ -204,6 +204,23 @@
                   <tbody id="account-detail-bookings"></tbody>
                 </table>
               </div>
+              <div class="section-header compact-header">
+                <h3>Änderungen</h3>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Zeitpunkt</th>
+                      <th>Aktion</th>
+                      <th>Datensatz</th>
+                      <th>Beschreibung</th>
+                      <th>Betroffene Bereiche</th>
+                    </tr>
+                  </thead>
+                  <tbody id="account-audit-list"></tbody>
+                </table>
+              </div>
             </div>
           </section>
 
@@ -566,6 +583,35 @@
               <div class="action-stack">
                 <button id="reset-data">Daten zurücksetzen</button>
                 <button id="load-sample-data" class="secondary">Beispieldaten laden</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="section-header">
+                <h3>Änderungsprotokoll</h3>
+                <label class="inline-filter">
+                  Anzeigen
+                  <select id="audit-filter">
+                    <option value="all">Alle</option>
+                    <option value="booking">Vorgänge</option>
+                    <option value="payment">Zahlungen</option>
+                    <option value="account">Bereiche</option>
+                    <option value="system">System</option>
+                  </select>
+                </label>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Zeitpunkt</th>
+                      <th>Aktion</th>
+                      <th>Datensatz</th>
+                      <th>Beschreibung</th>
+                      <th>Betroffene Bereiche</th>
+                    </tr>
+                  </thead>
+                  <tbody id="audit-log-list"></tbody>
+                </table>
               </div>
             </div>
           </section>

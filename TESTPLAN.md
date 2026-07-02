@@ -4,6 +4,7 @@
 - GitHub Actions Workflow `Test`: installiert Node-Abhängigkeiten, führt Unit-Tests aus und startet Playwright-Smoke-Tests.
 - Unit-Tests liegen in `tests/**/*.test.js`; Playwright-Tests liegen in `tests/**/*.spec.js`.
 - `vitest.config.js` verhindert, dass Playwright-Specs als Unit-Tests ausgeführt werden.
+- Automatisiert geprüft: Audit-Datenmodell, betroffene Konten inklusive Steuerkonto, Vorher/Nachher-Snapshots und ein Browser-Workflow für einen neuen Vorgang im Änderungsprotokoll.
 - Lokal wären `npm test`, `npm run test:e2e` und `npm run check` möglich, falls Node.js verfügbar ist.
 
 ## GitHub-Pages-Test
@@ -62,6 +63,15 @@
 4. Neue verknüpfte Materialbewegung entsteht.
 5. Vorgang löschen.
 6. Zugehörige Materialbewegung wird entfernt.
+
+### Änderungsprotokoll
+1. Einen neuen Vorgang erfassen.
+2. In `Einstellungen > Änderungsprotokoll` erscheint der neue Eintrag.
+3. Den Eintrag öffnen; Zeitpunkt, Aktion, betroffene Bereiche und Nachher-Daten sind sichtbar.
+4. Im Modal einen betroffenen Bereich öffnen.
+5. Den Vorgang bearbeiten; der neue Protokolleintrag enthält Vorher- und Nachher-Daten.
+6. `Daten zurücksetzen` ausführen; das Protokoll bleibt sichtbar und enthält einen Reset-Eintrag.
+7. Ein Bereich ohne Änderungen zeigt einen leeren Zustand statt eines Fehlers.
 
 ### Import / Export
 1. JSON exportieren.

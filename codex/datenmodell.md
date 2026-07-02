@@ -8,6 +8,7 @@
   bookings: [],
   inventoryItems: [],
   inventoryMovements: [],
+  auditLog: [],
   progress: { completedSteps: [], lastUpdated: null },
   settings: { exportedAt: null, createdAt: null, lastSavedAt: null }
 }
@@ -45,7 +46,17 @@
 
 ## Import und Export
 - JSON-Import wird normalisiert und referenziell geprüft.
+- `auditLog` wird beim JSON-Export mitgesichert und beim Import übernommen.
+- Nach einem Import wird zusätzlich ein Systemeintrag im Protokoll angelegt.
 - CSV-Export quotet alle Zellen und entschärft Werte, die in Tabellenkalkulationen als Formel interpretiert werden könnten.
+
+## Änderungsprotokoll
+- `auditLog` ist ein lesbares Lern- und Nachvollziehbarkeitsprotokoll, keine manipulationssichere Revision.
+- Jeder Eintrag enthält `id`, `timestamp`, `action`, `entityType`, `entityId`, `title`, `accountIds`, `summary`, `before` und `after`.
+- Protokolliert werden kontowirksame Vorgänge: Vorgang anlegen/bearbeiten/löschen/duplizieren, Zahlung erfassen, Bereich anlegen/löschen, Import, Reset und Beispieldaten laden.
+- Kontoansichten zeigen nur Einträge, deren `accountIds` den jeweiligen Bereich enthalten.
+- Reset und Beispieldatenladen erhalten vorhandene Protokolleinträge und protokollieren die Systemaktion selbst.
+- Reine Materialbewegungen ohne Buchungs- oder Kontowirkung werden vorerst nicht protokolliert.
 
 ## Seed-Beispiel
 - Das Standardbeispiel bildet rund zwei Monate Zahnarztpraxisbetrieb ab.

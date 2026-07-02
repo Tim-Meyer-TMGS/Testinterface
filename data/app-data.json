@@ -68,6 +68,7 @@
     { "id": "movement-booking-demo-22", "date": "2026-06-18", "itemId": "item-disinfectant", "type": "in", "quantity": 4, "unitValueNet": 19, "description": "Material rein aus Vorgang", "documentNo": "BE-1022", "linkedBookingId": "booking-demo-22" },
     { "id": "movement-booking-demo-23", "date": "2026-06-21", "itemId": "item-toothbrush", "type": "out", "quantity": 8, "unitValueNet": 3.2, "description": "Material raus aus Vorgang", "documentNo": "BE-1023", "linkedBookingId": "booking-demo-23" }
   ],
+  "auditLog": [],
   "progress": { "completedSteps": [], "lastUpdated": null },
   "settings": { "exportedAt": null, "createdAt": "2026-06-02T00:00:00.000Z", "lastSavedAt": null }
 }

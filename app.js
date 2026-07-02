@@ -1,4 +1,5 @@
 import { buildBookingLines, calculateAccountBalances, calculateTax, getBookingDisplayAmount, normalizeBookingAmounts } from './src/accounting.js';
+import { appendAuditEntries, bookingAccountIds, createAuditEntry, snapshotAccount, snapshotBooking, systemSnapshot } from './src/audit.js';
 import { ACCOUNT_IDS, INVENTORY_LINK_LABELS, INVENTORY_LINK_TYPES, TAX_LABELS, TYPE_LABELS } from './src/constants.js';
 import { toCsv } from './src/csv.js';
 import { calculateInventoryItems, syncMovementForBooking, validateMovement } from './src/inventory.js';
@@ -100,6 +101,54 @@ function findLinkedMovement(bookingId) {
   return state.inventoryMovements.find((movement) => movement.linkedBookingId === bookingId);
 }
 
+const ACTION_LABELS = {
+  create: 'Angelegt',
+  update: 'Geändert',
+  delete: 'Gelöscht',
+  duplicate: 'Dupliziert',
+  import: 'Importiert',
+  reset: 'Zurückgesetzt',
+  'load-sample': 'Beispieldaten'
+};
+
+const ENTITY_LABELS = {
+  booking: 'Vorgang',
+  payment: 'Zahlung',
+  account: 'Bereich',
+  system: 'System'
+};
+
+function accountLabel(accountId) {
+  const account = state.accounts.find((entry) => entry.id === accountId);
+  return account ? `${account.accountNo} ${account.name}` : accountId;
+}
+
+function accountLabels(accountIds = []) {
+  return accountIds.map(accountLabel).join(', ') || '-';
+}
+
+function isPaymentBooking(booking) {
+  return Boolean(booking?.description?.startsWith('Zahlung:'));
+}
+
+function auditEntriesForAccount(accountId, limit = 25) {
+  return state.auditLog
+    .filter((entry) => entry.accountIds?.includes(accountId))
+    .slice()
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .slice(0, limit);
+}
+
+function auditRow(entry) {
+  return detailRow(tr([
+    formatDateTime(entry.timestamp),
+    ACTION_LABELS[entry.action] || entry.action,
+    `${ENTITY_LABELS[entry.entityType] || entry.entityType}${entry.title ? ` · ${entry.title}` : ''}`,
+    entry.summary || '-',
+    accountLabels(entry.accountIds)
+  ]), 'log-entry', entry.id);
+}
+
 function setStatus(message) {
   $('last-saved').textContent = message;
 }
@@ -124,6 +173,7 @@ function render() {
   renderPayments();
   renderInventoryItems();
   renderInventoryMovements();
+  renderAuditLog();
 }
 
 function setView(view, updateHash = true) {
@@ -281,7 +331,7 @@ function renderDetailModalContent(type, id) {
     'inventory-item': renderInventoryItemModal,
     'inventory-movement': renderInventoryMovementModal,
     check: () => ({ title: 'Prüfung', body: [warning('Kein Prüfcenter vorhanden.')] }),
-    'log-entry': () => ({ title: 'Protokolleintrag', body: [warning('Kein Änderungsprotokoll vorhanden.')] })
+    'log-entry': renderLogEntryModal
   }[type];
   const content = renderer ? renderer(id) : { title: 'Datensatz', body: [warning()] };
   $('detail-modal-title').textContent = content.title;
@@ -338,6 +388,10 @@ function renderAccountModal(id) {
   list.className = 'detail-link-list';
   relatedBookings.forEach((booking) => list.append(detailButton(`${formatDate(booking.date)} · ${booking.documentNo} · ${booking.description}`, 'booking', booking.id)));
   if (!relatedBookings.length) list.append(text('div', 'Keine Vorgänge für diesen Bereich vorhanden.', 'empty-state'));
+  const auditList = document.createElement('div');
+  auditList.className = 'detail-link-list';
+  auditEntriesForAccount(account.id).forEach((entry) => auditList.append(detailButton(`${formatDateTime(entry.timestamp)} · ${ACTION_LABELS[entry.action] || entry.action} · ${entry.summary || entry.title}`, 'log-entry', entry.id)));
+  if (!auditList.childElementCount) auditList.append(text('div', 'Keine Änderungen für diesen Bereich vorhanden.', 'empty-state'));
   return {
     title: `${account.accountNo} ${account.name}`,
     body: [
@@ -350,7 +404,9 @@ function renderAccountModal(id) {
         ['Saldo', formatCurrency(account.balance)]
       ]),
       text('h3', 'Zugehörige Vorgänge'),
-      list
+      list,
+      text('h3', 'Änderungen'),
+      auditList
     ],
     footer: [button('Neue Buchung vorbereiten', { openView: 'bookings' })]
   };
@@ -373,6 +429,89 @@ function renderPaymentModal(id) {
       ['Erzeugte Buchung', detailButton(booking.documentNo, 'booking', booking.id)]
     ])]
   };
+}
+
+function renderLogEntryModal(id) {
+  const entry = state.auditLog.find((logEntry) => logEntry.id === id);
+  if (!entry) return { title: 'Protokolleintrag nicht gefunden', body: [warning()] };
+  const accountLinks = document.createElement('div');
+  accountLinks.className = 'detail-link-list';
+  entry.accountIds.forEach((accountId) => {
+    const account = state.accounts.find((item) => item.id === accountId);
+    if (account) accountLinks.append(detailButton(`${account.accountNo} ${account.name}`, 'account', account.id));
+    else accountLinks.append(text('div', accountId, 'detail-warning'));
+  });
+  if (!entry.accountIds.length) accountLinks.append(text('div', 'Keine einzelnen Bereiche betroffen.', 'empty-state'));
+
+  const body = [
+    fieldTable([
+      ['Zeitpunkt', formatDateTime(entry.timestamp)],
+      ['Aktion', ACTION_LABELS[entry.action] || entry.action],
+      ['Datensatztyp', ENTITY_LABELS[entry.entityType] || entry.entityType],
+      ['Titel', entry.title],
+      ['Kurzbeschreibung', entry.summary || '-']
+    ]),
+    text('h3', 'Betroffene Bereiche'),
+    accountLinks
+  ];
+  if (entry.before) body.push(text('h3', 'Vorher'), fieldTable(snapshotRows(entry.before)));
+  if (entry.after) body.push(text('h3', 'Nachher'), fieldTable(snapshotRows(entry.after)));
+
+  const linked = linkedDetailButton(entry);
+  if (entry.entityId && !linked && entry.entityType !== 'system') body.push(warning('Verknüpfter Datensatz wurde nicht gefunden.'));
+  return {
+    title: entry.title || 'Protokolleintrag',
+    body,
+    footer: linked ? [linked] : []
+  };
+}
+
+function snapshotRows(snapshot) {
+  return Object.entries(snapshot).map(([key, value]) => [snapshotLabel(key), formatSnapshotValue(key, value)]);
+}
+
+function snapshotLabel(key) {
+  return {
+    date: 'Datum',
+    documentNo: 'Belegnummer',
+    description: 'Beschreibung',
+    debitAccountId: 'Zielkonto',
+    creditAccountId: 'Gegenkonto',
+    amount: 'Eingabebetrag',
+    netAmount: 'Netto',
+    taxAmount: 'Steuer',
+    grossAmount: 'Brutto',
+    taxType: 'Steuerart',
+    taxMode: 'Steuermodus',
+    inventoryItemId: 'Artikel',
+    inventoryLinkType: 'Lagerwirkung',
+    quantity: 'Menge',
+    accountNo: 'Nummer',
+    name: 'Name',
+    type: 'Typ',
+    accounts: 'Bereiche',
+    bookings: 'Vorgänge',
+    inventoryItems: 'Artikel',
+    inventoryMovements: 'Materialbewegungen'
+  }[key] || key;
+}
+
+function formatSnapshotValue(key, value) {
+  if (value === null || value === undefined || value === '') return '-';
+  if (key.endsWith('AccountId')) return accountLabel(value);
+  if (key === 'inventoryItemId') return state.inventoryItems.find((item) => item.id === value)?.name || value;
+  if (key === 'taxType') return TAX_LABELS[value] || value;
+  if (key === 'inventoryLinkType') return INVENTORY_LINK_LABELS[value] || value;
+  if (key === 'type') return TYPE_LABELS[value] || value;
+  if (['amount', 'netAmount', 'taxAmount', 'grossAmount'].includes(key)) return formatCurrency(value);
+  return String(value);
+}
+
+function linkedDetailButton(entry) {
+  if (entry.entityType === 'booking' && state.bookings.some((booking) => booking.id === entry.entityId)) return detailButton('Vorgang öffnen', 'booking', entry.entityId);
+  if (entry.entityType === 'payment' && state.bookings.some((booking) => booking.id === entry.entityId)) return detailButton('Zahlung öffnen', 'payment', entry.entityId);
+  if (entry.entityType === 'account' && state.accounts.some((account) => account.id === entry.entityId)) return detailButton('Bereich öffnen', 'account', entry.entityId);
+  return null;
 }
 
 function renderInventoryItemModal(id) {
@@ -450,6 +589,7 @@ function renderAccountDetails(accountId) {
   if (!account) {
     $('account-detail-summary').textContent = 'Bitte einen Bereich auswählen.';
     renderRows('account-detail-bookings', [], emptyRow(5, 'Kein Bereich ausgewählt.'));
+    renderRows('account-audit-list', [], emptyRow(5, 'Kein Bereich ausgewählt.'));
     return;
   }
   $('account-detail-summary').textContent = `${account.accountNo} ${account.name} · ${TYPE_LABELS[account.type]} · Soll/Ziel ${formatCurrency(account.debitTotal)} · Haben/Quelle ${formatCurrency(account.creditTotal)} · Saldo ${formatCurrency(account.balance)}`;
@@ -460,6 +600,21 @@ function renderAccountDetails(accountId) {
       formatDate(booking.date), booking.documentNo, booking.description, formatCurrency(line.amount), line.side === 'debit' ? 'Soll (Ziel)' : 'Haben (Quelle)'
     ]), 'booking', booking.id)));
   renderRows('account-detail-bookings', rows, emptyRow(5, 'Keine Vorgänge für diesen Bereich vorhanden.'));
+  renderRows('account-audit-list', auditEntriesForAccount(account.id).map(auditRow), emptyRow(5, 'Keine Änderungen für diesen Bereich vorhanden.'));
+}
+
+function renderAuditLog() {
+  const list = $('audit-log-list');
+  if (!list) return;
+  const filter = $('audit-filter')?.value || 'all';
+  const rows = state.auditLog
+    .filter((entry) => entry.accountIds?.length || entry.entityType === 'system')
+    .filter((entry) => filter === 'all' || entry.entityType === filter)
+    .slice()
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .slice(0, 50)
+    .map(auditRow);
+  renderRows('audit-log-list', rows, emptyRow(5, 'Noch keine Änderungen protokolliert.'));
 }
 
 function renderBookingForm() {
@@ -629,8 +784,8 @@ function validateBooking(booking, currentState = state) {
   return null;
 }
 
-async function commit(nextState, message) {
-  state = normalizeState(nextState);
+async function commit(nextState, message, auditEntries = []) {
+  state = normalizeState(appendAuditEntries(nextState, auditEntries));
   state = recalculate(state);
   await persist(message);
   render();
@@ -643,14 +798,22 @@ async function handleBookingSubmit(event) {
   const error = validateBooking(booking);
   if (error) return alert(error);
 
+  const previous = state.bookings.find((entry) => entry.id === booking.id);
   const withoutBooking = state.bookings.filter((entry) => entry.id !== booking.id);
   let nextState = { ...state, bookings: [...withoutBooking, booking] };
   nextState = syncMovementForBooking(nextState, booking);
+  const auditEntry = createAuditEntry(previous ? 'update' : 'create', isPaymentBooking(booking) ? 'payment' : 'booking', booking.id, {
+    title: booking.documentNo,
+    summary: booking.description,
+    accountIds: [...new Set([...(previous ? bookingAccountIds(previous) : []), ...bookingAccountIds(booking)])],
+    before: snapshotBooking(previous),
+    after: snapshotBooking(booking)
+  });
   editingBookingId = null;
   event.currentTarget.reset();
   $('booking-id').value = '';
   $('booking-form-title').textContent = 'Neuen Vorgang erfassen';
-  await commit(nextState, 'Vorgang gespeichert');
+  await commit(nextState, 'Vorgang gespeichert', [auditEntry]);
 }
 
 async function handleAccountSubmit(event) {
@@ -662,7 +825,12 @@ async function handleAccountSubmit(event) {
   if (state.accounts.some((account) => account.accountNo === accountNo)) return alert('Diese Nummer ist bereits vorhanden.');
   const account = { id: generateId('account'), accountNo, name, type: formData.get('accountType') || 'asset' };
   event.currentTarget.reset();
-  await commit({ ...state, accounts: [...state.accounts, account] }, 'Bereich gespeichert');
+  await commit({ ...state, accounts: [...state.accounts, account] }, 'Bereich gespeichert', [createAuditEntry('create', 'account', account.id, {
+    title: `${account.accountNo} ${account.name}`,
+    summary: 'Bereich angelegt.',
+    accountIds: [account.id],
+    after: snapshotAccount(account)
+  })]);
 }
 
 async function handleInventoryItemSubmit(event) {
@@ -736,17 +904,29 @@ async function handlePaymentSubmit(event) {
     createdAt: new Date().toISOString()
   });
   event.currentTarget.reset();
-  await commit({ ...state, bookings: [...state.bookings, booking] }, 'Zahlung gespeichert');
+  await commit({ ...state, bookings: [...state.bookings, booking] }, 'Zahlung gespeichert', [createAuditEntry('create', 'payment', booking.id, {
+    title: booking.documentNo,
+    summary: booking.description,
+    accountIds: bookingAccountIds(booking),
+    after: snapshotBooking(booking)
+  })]);
 }
 
 async function handleDeleteBooking(id) {
+  const booking = state.bookings.find((entry) => entry.id === id);
+  if (!booking) return;
   const nextState = {
     ...state,
     bookings: state.bookings.filter((booking) => booking.id !== id),
     inventoryMovements: state.inventoryMovements.filter((movement) => movement.linkedBookingId !== id),
     settings: { ...state.settings, selectedBookingId: state.settings.selectedBookingId === id ? null : state.settings.selectedBookingId }
   };
-  await commit(nextState, 'Vorgang gelöscht');
+  await commit(nextState, 'Vorgang gelöscht', [createAuditEntry('delete', isPaymentBooking(booking) ? 'payment' : 'booking', booking.id, {
+    title: booking.documentNo,
+    summary: booking.description,
+    accountIds: bookingAccountIds(booking),
+    before: snapshotBooking(booking)
+  })]);
   if (detailModal.open && detailModal.type === 'booking' && detailModal.id === id) closeDetailModal();
 }
 
@@ -780,12 +960,25 @@ async function handleDuplicateBooking(id) {
   if (error) return alert(error);
   let nextState = { ...state, bookings: [...state.bookings, duplicate] };
   nextState = syncMovementForBooking(nextState, duplicate);
-  await commit(nextState, 'Vorgang dupliziert');
+  await commit(nextState, 'Vorgang dupliziert', [createAuditEntry('duplicate', isPaymentBooking(duplicate) ? 'payment' : 'booking', duplicate.id, {
+    title: duplicate.documentNo,
+    summary: `Duplikat von ${source.documentNo}: ${duplicate.description}`,
+    accountIds: bookingAccountIds(duplicate),
+    before: snapshotBooking(source),
+    after: snapshotBooking(duplicate)
+  })]);
 }
 
 async function handleDeleteAccount(id) {
   if (state.bookings.some((booking) => booking.debitAccountId === id || booking.creditAccountId === id)) return alert('Dieser Bereich wird in Vorgängen verwendet und kann nicht gelöscht werden.');
-  await commit({ ...state, accounts: state.accounts.filter((account) => account.id !== id) }, 'Bereich gelöscht');
+  const account = state.accounts.find((entry) => entry.id === id);
+  if (!account) return;
+  await commit({ ...state, accounts: state.accounts.filter((entry) => entry.id !== id) }, 'Bereich gelöscht', [createAuditEntry('delete', 'account', id, {
+    title: `${account.accountNo} ${account.name}`,
+    summary: 'Bereich gelöscht.',
+    accountIds: [id],
+    before: snapshotAccount(account)
+  })]);
   if (detailModal.open && detailModal.type === 'account' && detailModal.id === id) closeDetailModal();
 }
 
@@ -844,13 +1037,25 @@ function updateMovementStockInfo() {
 
 async function resetData() {
   if (!confirm('Alle Daten wirklich zurücksetzen?')) return;
-  state = await localStorageAdapter.reset();
-  render();
-  setStatus('Seed-Daten geladen');
+  const before = systemSnapshot(state);
+  const resetState = await localStorageAdapter.reset();
+  await commit({ ...resetState, auditLog: state.auditLog }, 'Seed-Daten geladen', [createAuditEntry('reset', 'system', null, {
+    title: 'Daten zurückgesetzt',
+    summary: 'Die Beispieldaten wurden neu geladen. Das Änderungsprotokoll blieb erhalten.',
+    before,
+    after: systemSnapshot(resetState)
+  })]);
 }
 
 async function loadSampleData() {
-  await commit(await loadSeedState(), 'Beispieldaten geladen');
+  const before = systemSnapshot(state);
+  const sampleState = await loadSeedState();
+  await commit({ ...sampleState, auditLog: state.auditLog }, 'Beispieldaten geladen', [createAuditEntry('load-sample', 'system', null, {
+    title: 'Beispieldaten geladen',
+    summary: 'Die Zahnarztpraxis-Beispieldaten wurden geladen. Das Änderungsprotokoll blieb erhalten.',
+    before,
+    after: systemSnapshot(sampleState)
+  })]);
 }
 
 function exportJson() {
@@ -903,7 +1108,12 @@ function handleImport(event) {
       const imported = normalizeState(JSON.parse(reader.result));
       const error = validateState(imported);
       if (error) return alert(error);
-      await commit(imported, 'Import gespeichert');
+      await commit(imported, 'Import gespeichert', [createAuditEntry('import', 'system', null, {
+        title: 'JSON-Import',
+        summary: 'Daten wurden aus einer JSON-Datei importiert.',
+        before: systemSnapshot(state),
+        after: systemSnapshot(imported)
+      })]);
     } catch (error) {
       alert('Die Datei konnte nicht importiert werden.');
     }
@@ -955,6 +1165,10 @@ function wireEvents() {
     const detailTrigger = event.target.closest('[data-action="open-detail"]');
     if (detailTrigger && (!target || target.dataset.action === 'open-detail')) {
       event.preventDefault();
+      if (detailTrigger.dataset.type === 'account') {
+        state.settings = { ...state.settings, selectedAccountId: detailTrigger.dataset.id };
+        renderAccountDetails(detailTrigger.dataset.id);
+      }
       openDetailModal(detailTrigger.dataset.type, detailTrigger.dataset.id);
       return;
     }
@@ -988,6 +1202,7 @@ function wireEvents() {
   $('import-json').addEventListener('change', handleImport);
   $('reset-data').addEventListener('click', resetData);
   $('load-sample-data').addEventListener('click', loadSampleData);
+  $('audit-filter')?.addEventListener('change', renderAuditLog);
 }
 
 async function init() {

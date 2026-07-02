@@ -318,6 +318,14 @@ button.danger {
   margin-bottom: 0.6rem;
 }
 
+.compact-header {
+  margin-top: 1rem;
+}
+
+.inline-filter {
+  max-width: 14rem;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(200px, 1fr));
