@@ -13,7 +13,7 @@
 - Tests: Node-basierte Unit- und Browser-Tests laufen über GitHub Actions.
 
 ## Hauptbereiche
-- Dashboard: Überblick über Kasse, Bank, Forderungen, Verbindlichkeiten, Lagerwert, Buchungshistorie und Bestände.
+- Dashboard: Aufgeräumter Einstieg mit Gesamt-Saldo, vier Kernzahlen, letzten Vorgängen und Materialhinweisen.
 - Konten: Bereiche und Salden mit Kontonummern, aber vereinfachten Typen wie Geld/Bestand, Einnahme, Ausgabe und offene Rechnung.
 - Buchungen: Erfassung, Bearbeitung, Duplizierung und Löschung von Praxisvorgängen inklusive Steuer- und Lagerwirkung.
 - Zahlungen: Schnellerfassung von Einzahlungen, Abbuchungen und Umbuchungen.
@@ -44,6 +44,7 @@
 - Beispieldaten bilden rund zwei Monate Praxisbetrieb ab: Behandlungshonorare, KZV-Abschläge, Privatforderungen, Prophylaxeverkäufe, Materialeinkäufe, Labor, Miete und Praxissoftware.
 - Das Design ist freundlicher und thematisch auf Zahnarztpraxis, Hygiene und Praxislager ausgerichtet.
 - Die Oberfläche wurde für Anfänger vereinfacht: Vorgänge statt abstrakter Buchungen, Zielkonto/Gegenkonto statt isoliertem Soll/Haben, Material rein/raus statt Wareneingang/Lagerabgang.
+- Das Dashboard wurde als Startansicht aufgeräumt und zeigt einen vereinfachten Gesamt-Saldo: Kasse + Bank + offene Patientenrechnungen + Materialwert minus offene Lieferantenrechnungen.
 - Steuerberechnung für netto/brutto sowie Umsatzsteuer/Vorsteuer in Kernlogik ausgelagert.
 - Buchungssalden werden aus Buchungszeilen abgeleitet, nicht mehr nur aus einem Betrag.
 - Lagerwirkung bei Vorgängen ist explizit: kein Lager, Material kommt rein oder Material geht raus.

@@ -40,6 +40,18 @@
 
         <main class="main-content">
           <section id="view-dashboard" class="view active">
+            <div class="dashboard-hero">
+              <div>
+                <p class="eyebrow">Praxisstatus</p>
+                <h3 id="dashboard-total-balance">0,00 €</h3>
+                <p id="dashboard-total-note" class="small"></p>
+              </div>
+              <div class="dashboard-actions">
+                <button type="button" data-open-view="bookings">Vorgang erfassen</button>
+                <button type="button" class="secondary" data-open-view="payments">Zahlung erfassen</button>
+                <button type="button" class="secondary" data-open-view="inventory">Material prüfen</button>
+              </div>
+            </div>
             <div class="stats-grid" id="dashboard-stats"></div>
             <div class="card">
               <div class="section-header">
@@ -50,7 +62,6 @@
                   <thead>
                     <tr>
                       <th>Datum</th>
-                      <th>Beleg</th>
                       <th>Beschreibung</th>
                       <th>Betrag</th>
                     </tr>
@@ -61,20 +72,9 @@
             </div>
             <div class="card">
               <div class="section-header">
-                <h3>Praxislager</h3>
+                <h3>Material im Blick</h3>
               </div>
-              <div class="table-wrapper">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Artikel</th>
-                      <th>Bestand</th>
-                      <th>Wert</th>
-                    </tr>
-                  </thead>
-                  <tbody id="dashboard-inventory-summary"></tbody>
-                </table>
-              </div>
+              <div id="dashboard-inventory-summary" class="dashboard-list"></div>
             </div>
             <div class="card">
               <div class="section-header">

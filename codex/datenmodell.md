@@ -53,3 +53,8 @@
 - Verkäufe von Prophylaxeartikeln laufen mit Umsatzsteuer und Materialabgang.
 - Einkäufe von Praxis- und Verbrauchsmaterial laufen mit Vorsteuer und optionalem Lagerzugang.
 - Interne Materialverbräuche werden als Lagerbewegungen geführt; Zahlungen an Lieferanten werden separat gebucht.
+
+## Dashboard-Saldo
+- Der Dashboard-Gesamt-Saldo ist eine einsteigerfreundliche Übersichtszahl.
+- Berechnung: Kasse + Bank + offene Patientenrechnungen + Materialwert minus offene Lieferantenrechnungen.
+- Er ist kein handelsrechtlicher Abschlusswert, sondern eine Orientierung für den Übungsbetrieb.

@@ -115,15 +115,18 @@ function syncViewFromHash() {
 function renderDashboard() {
   const accountMap = Object.fromEntries(state.accounts.map((account) => [account.id, account]));
   const inventoryValue = state.inventoryItems.reduce((sum, item) => sum + Number(item.currentValue || 0), 0);
+  const cashBalance = accountMap[ACCOUNT_IDS.cash]?.balance || 0;
+  const bankBalance = accountMap[ACCOUNT_IDS.bank]?.balance || 0;
+  const receivables = accountMap[ACCOUNT_IDS.receivables]?.balance || 0;
+  const payables = accountMap[ACCOUNT_IDS.payables]?.balance || 0;
+  const totalBalance = cashBalance + bankBalance + receivables + inventoryValue - payables;
+  $('dashboard-total-balance').textContent = formatCurrency(totalBalance);
+  $('dashboard-total-note').textContent = 'Kasse + Bank + offene Patientenrechnungen + Materialwert minus offene Lieferantenrechnungen.';
   const stats = [
-    ['Kassenbestand', formatCurrency(accountMap[ACCOUNT_IDS.cash]?.balance || 0)],
-    ['Bankbestand', formatCurrency(accountMap[ACCOUNT_IDS.bank]?.balance || 0)],
-    ['Offene Patientenrechnungen', formatCurrency(accountMap[ACCOUNT_IDS.receivables]?.balance || 0)],
-    ['Offene Lieferantenrechnungen', formatCurrency(accountMap[ACCOUNT_IDS.payables]?.balance || 0)],
-    ['Gespeicherte Vorgänge', state.bookings.length],
-    ['Anzahl Materialartikel', state.inventoryItems.length],
-    ['Lagerwert gesamt', formatCurrency(inventoryValue)],
-    ['Letzter Speicherstatus', state.settings.lastSavedAt ? formatDateTime(state.settings.lastSavedAt) : 'Noch nicht gespeichert']
+    ['Bank + Kasse', formatCurrency(bankBalance + cashBalance)],
+    ['Offene Patientenrechnungen', formatCurrency(receivables)],
+    ['Offene Lieferantenrechnungen', formatCurrency(payables)],
+    ['Materialwert', formatCurrency(inventoryValue)]
   ];
   $('dashboard-stats').replaceChildren(...stats.map(([label, value]) => {
     const card = document.createElement('div');
@@ -141,9 +144,26 @@ function renderDashboard() {
     return tr([item.name, item.unit || '-', item.currentStock, lastMovement ? `${formatDate(lastMovement.date)} · ${lastMovement.description}` : 'Keine Bewegung']);
   }));
   renderRows('dashboard-booking-history', state.bookings.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5).map((booking) => tr([
-    formatDate(booking.date), booking.documentNo, booking.description, formatCurrency(getBookingDisplayAmount(booking))
+    formatDate(booking.date), booking.description, formatCurrency(getBookingDisplayAmount(booking))
   ])));
-  renderRows('dashboard-inventory-summary', state.inventoryItems.map((item) => tr([item.name, item.currentStock, formatCurrency(item.currentValue)])));
+  renderDashboardInventorySummary();
+}
+
+function renderDashboardInventorySummary() {
+  const summary = $('dashboard-inventory-summary');
+  if (!summary) return;
+  const relevantItems = state.inventoryItems
+    .slice()
+    .sort((a, b) => Number(b.needsReorder) - Number(a.needsReorder) || a.currentStock - b.currentStock)
+    .slice(0, 5);
+  summary.replaceChildren(...(relevantItems.length ? relevantItems.map((item) => {
+    const row = document.createElement('div');
+    row.className = `dashboard-list-item ${item.needsReorder ? 'needs-attention' : ''}`;
+    const main = document.createElement('div');
+    main.append(text('strong', item.name), text('span', `${item.currentStock} ${item.unit || ''}`.trim(), 'small'));
+    row.append(main, text('span', item.needsReorder ? 'Nachbestellen' : formatCurrency(item.currentValue), item.needsReorder ? 'status-pill critical' : 'dashboard-value'));
+    return row;
+  }) : [text('div', 'Noch keine Materialartikel vorhanden.', 'empty-state')]));
 }
 
 function renderRows(id, rows, fallback = null) {
@@ -650,6 +670,7 @@ function wireEvents() {
   document.addEventListener('click', (event) => {
     const target = event.target.closest('button');
     if (!target) return;
+    if (target.dataset.openView) setView(target.dataset.openView);
     if (target.dataset.selectBooking) {
       state.settings = { ...state.settings, selectedBookingId: target.dataset.selectBooking };
       renderBookingDetails(target.dataset.selectBooking);

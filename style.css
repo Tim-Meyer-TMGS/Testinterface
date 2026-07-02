@@ -184,11 +184,87 @@ button.danger {
   display: block;
 }
 
+#view-dashboard.view.active {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+#view-dashboard .dashboard-hero,
+#view-dashboard .stats-grid {
+  grid-column: 1 / -1;
+}
+
+#view-dashboard > .card {
+  margin-bottom: 0;
+}
+
+.dashboard-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.2rem;
+  align-items: center;
+  background: linear-gradient(135deg, #ffffff, #e8f8f5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+
+.dashboard-hero h3 {
+  margin: 0.1rem 0 0.25rem;
+  font-size: 2rem;
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+#view-dashboard > .card:nth-of-type(n+5) {
+  display: none;
+}
+
+.dashboard-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.dashboard-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  background: var(--panel-alt);
+}
+
+.dashboard-list-item strong,
+.dashboard-list-item span {
+  display: block;
+}
+
+.dashboard-list-item.needs-attention {
+  border-color: rgba(191, 78, 93, 0.35);
+  background: #fff7f7;
+}
+
+.dashboard-value {
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
 }
 
 .card {
@@ -451,6 +527,10 @@ tbody tr:hover {
 }
 
 @media (max-width: 900px) {
+  #view-dashboard.view.active {
+    grid-template-columns: 1fr;
+  }
+
   .app-shell {
     grid-template-columns: 1fr;
   }
@@ -498,6 +578,16 @@ tbody tr:hover {
   .form-grid {
     grid-template-columns: 1fr;
   }
+
+  .dashboard-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboard-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
 }
 
 @media (max-width: 640px) {
@@ -532,6 +622,10 @@ tbody tr:hover {
 
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-hero h3 {
+    font-size: 1.65rem;
   }
 
   .section-header {
