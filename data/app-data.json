@@ -103,9 +103,9 @@
     }
   ],
   "inventoryItems": [
-    { "id": "item-1", "sku": "ART-001", "name": "Betriebsbedarf", "category": "Material", "unit": "Stk", "openingStock": 12, "purchasePriceNet": 8, "salePriceNet": 12 },
-    { "id": "item-2", "sku": "ART-002", "name": "Desinfektionsmittel", "category": "Material", "unit": "Flasche", "openingStock": 8, "purchasePriceNet": 4.5, "salePriceNet": 7.5 },
-    { "id": "item-3", "sku": "ART-003", "name": "Papierrollen", "category": "Betriebsbedarf", "unit": "Rolle", "openingStock": 20, "purchasePriceNet": 3.2, "salePriceNet": 5.2 }
+    { "id": "item-1", "sku": "ART-001", "name": "Betriebsbedarf", "category": "Material", "unit": "Stk", "openingStock": 12, "purchasePriceNet": 8, "salePriceNet": 12, "consumptionPerWeek": 6, "leadTimeDays": 7, "safetyStock": 4 },
+    { "id": "item-2", "sku": "ART-002", "name": "Desinfektionsmittel", "category": "Material", "unit": "Flasche", "openingStock": 8, "purchasePriceNet": 4.5, "salePriceNet": 7.5, "consumptionPerWeek": 12, "leadTimeDays": 5, "safetyStock": 6 },
+    { "id": "item-3", "sku": "ART-003", "name": "Papierrollen", "category": "Betriebsbedarf", "unit": "Rolle", "openingStock": 20, "purchasePriceNet": 3.2, "salePriceNet": 5.2, "consumptionPerWeek": 10, "leadTimeDays": 7, "safetyStock": 5 }
   ],
   "inventoryMovements": [
     { "id": "movement-demo-1", "date": "2026-06-05", "itemId": "item-1", "type": "in", "quantity": 8, "unitValueNet": 8, "description": "Wareneingang Betriebsbedarf", "documentNo": "LG-1001", "linkedBookingId": "booking-demo-3" },

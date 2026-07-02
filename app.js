@@ -172,7 +172,42 @@ function calculateInventoryStock() {
     const totalOut = state.inventoryMovements.filter((movement) => movement.itemId === item.id && movement.type === 'out').reduce((sum, movement) => sum + Number(movement.quantity || 0), 0);
     const totalAdjustments = state.inventoryMovements.filter((movement) => movement.itemId === item.id && movement.type === 'adjustment').reduce((sum, movement) => sum + Number(movement.quantity || 0), 0);
     const currentStock = openingStock + totalIn - totalOut + totalAdjustments;
-    return { ...item, currentStock, currentValue: currentStock * Number(item.purchasePriceNet || 0) };
+    const outMovements = state.inventoryMovements
+      .filter((movement) => movement.itemId === item.id && movement.type === 'out')
+      .sort((a, b) => (a.date < b.date ? -1 : 1));
+    const consumedTotal = outMovements.reduce((sum, movement) => sum + Number(movement.quantity || 0), 0);
+    const oldestDate = outMovements[0]?.date;
+    const newestDate = outMovements[outMovements.length - 1]?.date;
+    const rangeDays = oldestDate && newestDate
+      ? Math.max(7, Math.round((new Date(newestDate) - new Date(oldestDate)) / 86400000) + 1)
+      : 7;
+    const derivedConsumption = outMovements.length ? consumedTotal * 7 / rangeDays : 0;
+    const explicitConsumption = Number(item.consumptionPerWeek || 0);
+    const weeklyConsumption = explicitConsumption > 0 ? explicitConsumption : derivedConsumption;
+    const leadTimeDays = Number(item.leadTimeDays || 7);
+    const safetyStock = Number(item.safetyStock || 0);
+    const effectiveSafetyStock = safetyStock > 0 ? safetyStock : Math.max(0, Math.round(weeklyConsumption * 0.5));
+    const reorderPoint = Math.max(0, Math.round(weeklyConsumption * leadTimeDays / 7 + effectiveSafetyStock));
+    const targetStock = Math.max(reorderPoint, Math.round(weeklyConsumption * 2 + effectiveSafetyStock));
+    const daysUntilEmpty = weeklyConsumption > 0 ? currentStock / weeklyConsumption * 7 : null;
+    const needsReorder = currentStock <= reorderPoint;
+    const recommendedOrderQuantity = Math.max(0, targetStock - currentStock);
+    const status = needsReorder ? 'Nachbestellen' : daysUntilEmpty !== null && daysUntilEmpty <= 14 ? 'Achtung' : 'Im Plan';
+
+    return {
+      ...item,
+      currentStock,
+      currentValue: currentStock * Number(item.purchasePriceNet || 0),
+      weeklyConsumption,
+      leadTimeDays,
+      safetyStock: effectiveSafetyStock,
+      reorderPoint,
+      targetStock,
+      daysUntilEmpty,
+      needsReorder,
+      recommendedOrderQuantity,
+      status
+    };
   });
 }
 
@@ -493,6 +528,41 @@ function renderPayments() {
     : '<tr><td colspan="4" class="empty-state">Noch keine Zahlungen erfasst.</td></tr>';
 }
 
+function renderInventoryForecasts() {
+  const forecastCards = state.inventoryItems.map((item) => {
+    const maxScale = Math.max(1, Number(item.targetStock || item.currentStock || item.openingStock || 1));
+    const fillPercent = Math.min(100, Math.round((Number(item.currentStock || 0) / maxScale) * 100));
+    const reservePercent = Math.min(100 - fillPercent, Math.round((Number(item.safetyStock || 0) / maxScale) * 100));
+    const reorderPercent = Math.min(100 - fillPercent - reservePercent, Math.max(0, Math.round(((Number(item.reorderPoint || 0) - Number(item.safetyStock || 0)) / maxScale) * 100)));
+    const daysText = item.daysUntilEmpty === null || Number.isNaN(item.daysUntilEmpty) ? 'Keine Verbrauchsdaten' : `${Math.round(item.daysUntilEmpty)} Tage`;
+    const statusClass = item.needsReorder ? 'critical' : item.status === 'Achtung' ? 'warn' : 'ok';
+    return `
+      <div class="forecast-card">
+        <div class="forecast-header">
+          <strong>${item.name}</strong>
+          <span class="status-pill ${statusClass}">${item.status}</span>
+        </div>
+        <div class="forecast-bar" aria-label="Bestandsdiagramm">
+          <div class="forecast-segment available" style="width:${fillPercent}%"></div>
+          ${reservePercent ? `<div class="forecast-segment reserve" style="width:${reservePercent}%"></div>` : ''}
+          ${reorderPercent ? `<div class="forecast-segment reorder" style="width:${reorderPercent}%"></div>` : ''}
+          <div class="forecast-marker" style="left:${Math.min(100, Math.round((Number(item.reorderPoint || 0) / maxScale) * 100))}%"></div>
+        </div>
+        <div class="forecast-metrics">
+          <div><span>Aktueller Bestand</span><strong>${item.currentStock ?? item.openingStock}</strong></div>
+          <div><span>Verbrauch/Woche</span><strong>${item.weeklyConsumption ? item.weeklyConsumption.toFixed(1) : '0.0'}</strong></div>
+          <div><span>Meldebestand</span><strong>${item.reorderPoint}</strong></div>
+          <div><span>Reserve</span><strong>${item.safetyStock}</strong></div>
+          <div><span>Verbleibend</span><strong>${daysText}</strong></div>
+          <div><span>Nachbestellung</span><strong>${item.needsReorder ? `${item.recommendedOrderQuantity} ${item.unit || ''}` : 'nicht nötig'}</strong></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('inventory-forecast-grid').innerHTML = forecastCards || '<div class="empty-state">Noch keine Lagerartikel vorhanden.</div>';
+}
+
 function renderInventoryItems() {
   const itemRows = state.inventoryItems.map((item) => `
     <tr>
@@ -510,6 +580,7 @@ function renderInventoryItems() {
 
   document.getElementById('inventory-item-list').innerHTML = itemRows || '<tr><td colspan="5" class="empty-state">Noch keine Lagerartikel vorhanden.</td></tr>';
   document.getElementById('movement-item').innerHTML = state.inventoryItems.map((item) => `<option value="${item.id}">${item.name}</option>`).join('');
+  renderInventoryForecasts();
   updateMovementStockInfo();
 }
 
@@ -592,6 +663,9 @@ function validateInventoryItem(formData) {
   if (!formData.name) return 'Bitte einen Artikelnamen eingeben.';
   if (Number(formData.openingStock) < 0) return 'Der Anfangsbestand darf nicht negativ sein.';
   if (Number(formData.purchasePriceNet) < 0 || Number(formData.salePriceNet) < 0) return 'Preise dürfen nicht negativ sein.';
+  if (Number(formData.consumptionPerWeek) < 0) return 'Der Verbrauch pro Woche darf nicht negativ sein.';
+  if (Number(formData.leadTimeDays) < 0) return 'Die Lieferzeit darf nicht negativ sein.';
+  if (Number(formData.safetyStock) < 0) return 'Der Sicherheitsbestand darf nicht negativ sein.';
   const exists = state.inventoryItems.some((item) => item.sku === formData.sku && item.id !== editingItemId);
   if (exists) return 'Artikelnummer darf nicht doppelt sein.';
   return null;
@@ -723,7 +797,10 @@ function buildInventoryItemFromForm(formData, itemId = null) {
     unit: String(formData.get('inventoryUnit') || '').trim(),
     openingStock: Number(formData.get('inventoryOpening') || 0),
     purchasePriceNet: Number(formData.get('inventoryPurchase') || 0),
-    salePriceNet: Number(formData.get('inventorySale') || 0)
+    salePriceNet: Number(formData.get('inventorySale') || 0),
+    consumptionPerWeek: Number(formData.get('inventoryConsumption') || 0),
+    leadTimeDays: Number(formData.get('inventoryLeadTime') || 7),
+    safetyStock: Number(formData.get('inventorySafetyStock') || 0)
   };
 }
 
@@ -982,6 +1059,9 @@ function handleEditItem(id) {
   document.getElementById('inventory-opening').value = item.openingStock;
   document.getElementById('inventory-purchase').value = item.purchasePriceNet;
   document.getElementById('inventory-sale').value = item.salePriceNet;
+  document.getElementById('inventory-consumption').value = item.consumptionPerWeek ?? '';
+  document.getElementById('inventory-lead-time').value = item.leadTimeDays ?? 7;
+  document.getElementById('inventory-safety-stock').value = item.safetyStock ?? '';
   setView('inventory');
 }
 
@@ -1082,8 +1162,23 @@ function handleImport(event) {
 
 function wireEvents() {
   document.querySelectorAll('.nav-button').forEach((button) => {
-    button.addEventListener('click', () => setView(button.dataset.view));
+    button.addEventListener('click', () => {
+      setView(button.dataset.view);
+      document.body.classList.remove('menu-open');
+      const toggle = document.getElementById('menu-toggle');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
   });
+
+  const menuToggle = document.getElementById('menu-toggle');
+  if (menuToggle) {
+    menuToggle.addEventListener('click', () => {
+      const isOpen = document.body.classList.toggle('menu-open');
+      menuToggle.setAttribute('aria-expanded', String(isOpen));
+    });
+  }
 
   window.addEventListener('hashchange', syncViewFromHash);
 
