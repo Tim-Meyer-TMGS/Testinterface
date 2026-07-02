@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test';
 
+async function openView(page, name) {
+  await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('button', { name, exact: true }).click();
+}
+
 test('Dashboard und Journal laden', async ({ page }) => {
   const consoleErrors = [];
   page.on('console', (message) => {
@@ -7,7 +11,7 @@ test('Dashboard und Journal laden', async ({ page }) => {
   });
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-  await page.getByRole('button', { name: 'Vorgänge' }).click();
+  await openView(page, 'Vorgänge');
   await expect(page.getByRole('heading', { name: 'Aktivitätsliste' })).toBeVisible();
   await expect(page.locator('#booking-list .timeline-item')).toHaveCount(27);
   expect(consoleErrors).toEqual([]);
@@ -22,7 +26,7 @@ test('Details aus Dashboard und Journal im Modal öffnen', async ({ page }) => {
   await page.getByLabel('Details schließen').click();
   await expect(page.getByRole('dialog')).toBeHidden();
 
-  await page.getByRole('button', { name: 'Vorgänge' }).click();
+  await openView(page, 'Vorgänge');
   await page.locator('#booking-list .timeline-item').first().click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.locator('.detail-modal__body .timeline-item').first().click();
@@ -34,7 +38,7 @@ test('Details aus Dashboard und Journal im Modal öffnen', async ({ page }) => {
 
 test('Neuer Vorgang erscheint im Änderungsprotokoll', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Vorgänge' }).click();
+  await openView(page, 'Vorgänge');
   await page.locator('#booking-date').fill('2026-06-30');
   await page.locator('#booking-document').fill('BE-E2E-AUDIT');
   await page.locator('#booking-description').fill('Audit Test Behandlung');
@@ -43,7 +47,7 @@ test('Neuer Vorgang erscheint im Änderungsprotokoll', async ({ page }) => {
   await page.getByRole('button', { name: 'Vorgang speichern' }).click();
   await page.getByLabel('Details schließen').click();
 
-  await page.getByRole('button', { name: 'Einstellungen' }).click();
+  await openView(page, 'Einstellungen');
   await expect(page.locator('#audit-log-list')).toContainText('Audit Test Behandlung');
   await page.locator('#audit-log-list .timeline-item').first().click();
   await expect(page.getByRole('dialog')).toBeVisible();
