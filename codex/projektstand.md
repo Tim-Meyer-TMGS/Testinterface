@@ -1,5 +1,37 @@
 # Projektstand
 
+## App-Übersicht
+- Name: Praxisbuchhaltung.
+- Zweck: Browserbasierte Lern- und Übungs-App für Buchhaltung, Zahlungen und Lager einer Zahnarztpraxis.
+- Zielgruppe: Nutzer, die typische Praxisvorgänge buchhalterisch nachvollziehen und üben wollen.
+- Plattform: Statische Web-App für GitHub Pages; keine Backend-Pflicht.
+- Speicher: Standardmäßig `localStorage` im Browser, zusätzlich JSON-Export und JSON-Import.
+- Beispieldaten: Rund zwei Monate Zahnarztpraxisbetrieb mit Behandlungshonoraren, KZV-Abschlägen, Privatforderungen, Prophylaxeverkäufen, Materialeinkäufen, Labor, Miete und Praxissoftware.
+- Fachlicher Rahmen: SKR03-nahe Übungsbuchhaltung mit Soll/Haben, Netto/Brutto, Umsatzsteuer, Vorsteuer und praxisbezogenen Konten.
+- Lager: Praxislager für Hygiene-, Behandlungs- und Prophylaxeartikel mit Zugängen, Abgängen, Bestandsprüfung und Nachbestellhinweisen.
+- Import/Export: JSON für vollständige Datensicherung, CSV für Journal und Lagerbestand.
+- Tests: Node-basierte Unit- und Browser-Tests laufen über GitHub Actions.
+
+## Hauptbereiche
+- Dashboard: Überblick über Kasse, Bank, Forderungen, Verbindlichkeiten, Lagerwert, Buchungshistorie und Bestände.
+- Konten: Kontenliste, Salden, Soll/Haben-Summen und Kontendetails.
+- Buchungen: Erfassung, Bearbeitung, Duplizierung und Löschung von Geschäftsvorfällen inklusive Steuer- und Lagerwirkung.
+- Zahlungen: Schnellerfassung von Einzahlungen, Abbuchungen und Umbuchungen.
+- Lager: Artikelverwaltung, Lagerbewegungen, Bestandskorrekturen, Verbrauch und Nachbestellung.
+- Export / Import: JSON- und CSV-Ausgabe sowie JSON-Wiederherstellung.
+- Einstellungen: Daten zurücksetzen und Beispieldaten neu laden.
+
+## Architektur
+- `index.html`: Statische Oberfläche und Formular-/Tabellenstruktur.
+- `style.css`: Zahnarztpraxis-Design mit freundlicher Mint-/Teal-Farbwelt.
+- `app.js`: UI- und Event-Schicht; rendert DOM sicher ohne ungeprüftes `innerHTML`.
+- `src/accounting.js`: Steuerberechnung, Buchungszeilen und Kontensalden.
+- `src/inventory.js`: Lagerbestände, Bestandsprüfung und Synchronisierung verknüpfter Lagerbewegungen.
+- `src/state.js`: State-Erzeugung, Normalisierung, IDs und Importvalidierung.
+- `src/storage.js`: LocalStorage-Adapter und vorbereiteter Server-Adapter.
+- `data/app-data.json`: Seed-Daten für das Praxisbeispiel.
+- `.github/workflows/test.yml`: CI-Tests in GitHub Actions.
+
 ## Status
 - Die Anwendung ist zu einer modularen Vanilla-JS-App umgebaut.
 - Fachlogik liegt in `src/` und ist ohne DOM testbar.
