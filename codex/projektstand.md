@@ -45,6 +45,7 @@
 - Fachlogik liegt in `src/` und ist ohne DOM testbar.
 - Die alte Vanilla-UI wird nicht mehr aus `index.html` geladen; die UI läuft über Vue-Komponenten.
 - Die App bleibt statisch lauffähig und nutzt `localStorage` als Standard-Speicher.
+- Leere oder durch frühere Ladefehler entstandene Browserstände werden beim Start automatisch durch die Beispieldaten ersetzt.
 - GitHub Pages muss die per Actions gebaute Vite-Ausgabe aus `dist` veröffentlichen, nicht mehr den Repo-Root.
 
 ## Umgesetzte Sanierung

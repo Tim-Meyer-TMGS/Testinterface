@@ -15,7 +15,10 @@ export const localStorageAdapter = {
   async load() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return normalizeState(JSON.parse(raw));
+      if (raw) {
+        const storedState = normalizeState(JSON.parse(raw));
+        if (!isEmptyStoredState(storedState)) return storedState;
+      }
     } catch (error) {
       console.error('Fehler beim Laden aus localStorage', error);
     }
@@ -35,6 +38,10 @@ export const localStorageAdapter = {
     return loadSeedState();
   }
 };
+
+function isEmptyStoredState(state) {
+  return !state.bookings.length && !state.inventoryItems.length && !state.inventoryMovements.length;
+}
 
 export const serverStorageAdapter = {
   async load() {
