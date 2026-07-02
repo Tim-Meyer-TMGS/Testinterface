@@ -3,7 +3,9 @@ const DEFAULT_STATE = {
   accounts: [],
   bookings: [],
   inventoryItems: [],
-  inventoryMovements: []
+  inventoryMovements: [],
+  progress: { completedSteps: [], lastUpdated: null },
+  settings: { exportedAt: null, createdAt: null, lastSavedAt: null }
 };
 
 let state = loadState();
@@ -26,7 +28,17 @@ function loadState() {
       accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [],
       bookings: Array.isArray(parsed.bookings) ? parsed.bookings : [],
       inventoryItems: Array.isArray(parsed.inventoryItems) ? parsed.inventoryItems : [],
-      inventoryMovements: Array.isArray(parsed.inventoryMovements) ? parsed.inventoryMovements : []
+      inventoryMovements: Array.isArray(parsed.inventoryMovements) ? parsed.inventoryMovements : [],
+      progress: parsed.progress && typeof parsed.progress === 'object'
+        ? { completedSteps: Array.isArray(parsed.progress.completedSteps) ? parsed.progress.completedSteps : [], lastUpdated: parsed.progress.lastUpdated || null }
+        : { completedSteps: [], lastUpdated: null },
+      settings: parsed.settings && typeof parsed.settings === 'object'
+        ? {
+            exportedAt: parsed.settings.exportedAt || null,
+            createdAt: parsed.settings.createdAt || null,
+            lastSavedAt: parsed.settings.lastSavedAt || null
+          }
+        : { exportedAt: null, createdAt: null, lastSavedAt: null }
     };
   } catch (error) {
     console.error('Fehler beim Laden', error);
@@ -55,12 +67,27 @@ function createInitialState() {
     { id: 'item-2', sku: 'ART-002', name: 'Desinfektionsmittel', category: 'Material', unit: 'Flasche', openingStock: 5, purchasePriceNet: 4.5, salePriceNet: 7.5 }
   ];
 
-  return { accounts, bookings: [], inventoryItems, inventoryMovements: [] };
+  return {
+    accounts,
+    bookings: [],
+    inventoryItems,
+    inventoryMovements: [],
+    progress: { completedSteps: [], lastUpdated: null },
+    settings: { exportedAt: null, createdAt: new Date().toISOString(), lastSavedAt: null }
+  };
 }
 
 function saveState() {
+  state.progress = {
+    completedSteps: Array.isArray(state.progress?.completedSteps) ? state.progress.completedSteps : [],
+    lastUpdated: new Date().toISOString()
+  };
+  state.settings = {
+    ...state.settings,
+    lastSavedAt: new Date().toISOString()
+  };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  document.getElementById('last-saved').textContent = 'Gespeichert ' + new Date().toLocaleTimeString('de-DE');
+  document.getElementById('last-saved').textContent = 'Gespeichert ' + formatDateTime(new Date().toISOString());
 }
 
 function calculateAccountBalances() {
@@ -99,17 +126,21 @@ function calculateInventoryValue() {
 
 function calculateTax(amount, mode, taxType) {
   const amountNumber = Number(amount || 0);
+  const round2 = (value) => Math.round(value * 100) / 100;
   if (!taxType || taxType === 'none') {
-    return { netAmount: mode === 'gross' ? amountNumber / 1.19 : amountNumber, taxAmount: 0, grossAmount: mode === 'gross' ? amountNumber : amountNumber * 1.19 };
+    const netAmount = mode === 'gross' ? round2(amountNumber) : round2(amountNumber);
+    return { netAmount, taxAmount: 0, grossAmount: round2(mode === 'gross' ? amountNumber : amountNumber) };
   }
   const rate = taxType.includes('19') ? 0.19 : 0.07;
   if (mode === 'net') {
-    const taxAmount = amountNumber * rate;
-    return { netAmount: amountNumber, taxAmount, grossAmount: amountNumber + taxAmount };
+    const netAmount = round2(amountNumber);
+    const taxAmount = round2(netAmount * rate);
+    return { netAmount, taxAmount, grossAmount: round2(netAmount + taxAmount) };
   }
-  const netAmount = amountNumber / (1 + rate);
-  const taxAmount = amountNumber - netAmount;
-  return { netAmount, taxAmount, grossAmount: amountNumber };
+  const grossAmount = round2(amountNumber);
+  const netAmount = round2(grossAmount / (1 + rate));
+  const taxAmount = round2(grossAmount - netAmount);
+  return { netAmount, taxAmount, grossAmount };
 }
 
 function recalculateAll() {
@@ -130,7 +161,7 @@ function render() {
   saveState();
 }
 
-function setView(view) {
+function setView(view, updateHash = true) {
   currentView = view;
   document.querySelectorAll('.view').forEach((section) => section.classList.remove('active'));
   document.getElementById(`view-${view}`).classList.add('active');
@@ -146,6 +177,42 @@ function setView(view) {
   document.querySelectorAll('.nav-button').forEach((button) => {
     button.classList.toggle('active', button.dataset.view === view);
   });
+
+  if (updateHash) {
+    const hash = view === 'dashboard' ? '' : `#${view}`;
+    const nextUrl = `${window.location.pathname}${window.location.search}${hash}`;
+    if (window.location.href !== `${window.location.origin}${nextUrl}`) {
+      window.history.replaceState(null, '', nextUrl);
+    }
+  }
+}
+
+function syncViewFromHash() {
+  const views = ['dashboard', 'accounts', 'bookings', 'payments', 'inventory', 'import-export', 'settings'];
+  const requestedView = window.location.hash.replace('#', '');
+  const resolvedView = views.includes(requestedView) ? requestedView : 'dashboard';
+  setView(resolvedView, false);
+}
+
+function renderProgress() {
+  const completedSteps = Array.isArray(state.progress?.completedSteps) ? state.progress.completedSteps : [];
+  const progressItems = [
+    { id: 'bookings', label: 'Buchungen erfasst' },
+    { id: 'payments', label: 'Zahlungen erfasst' },
+    { id: 'inventory', label: 'Lagerbewegungen erfasst' },
+    { id: 'tax', label: 'Steuer berechnet' },
+    { id: 'export', label: 'Daten exportiert' }
+  ];
+
+  document.getElementById('progress-list').innerHTML = progressItems.map((item) => `
+    <label class="progress-item">
+      <input type="checkbox" data-progress-step="${item.id}" ${completedSteps.includes(item.id) ? 'checked' : ''} />
+      <span>${item.label}</span>
+    </label>
+  `).join('');
+
+  const count = progressItems.filter((item) => completedSteps.includes(item.id)).length;
+  document.getElementById('progress-summary').textContent = `${count}/${progressItems.length} abgeschlossen`;
 }
 
 function renderDashboard() {
@@ -160,9 +227,10 @@ function renderDashboard() {
     { label: 'Bankbestand', value: formatCurrency(bank) },
     { label: 'Forderungen offen', value: formatCurrency(receivables) },
     { label: 'Verbindlichkeiten offen', value: formatCurrency(payables) },
+    { label: 'Gespeicherte Buchungen', value: state.bookings.length },
     { label: 'Anzahl Lagerartikel', value: state.inventoryItems.length },
     { label: 'Lagerwert gesamt', value: formatCurrency(inventoryValue) },
-    { label: 'Gespeicherte Buchungen', value: state.bookings.length }
+    { label: 'Letzter Speicherstatus', value: state.settings?.lastSavedAt ? formatDateTime(state.settings.lastSavedAt) : 'Noch nicht gespeichert' }
   ];
 
   document.getElementById('dashboard-stats').innerHTML = stats.map((stat) => `
@@ -171,6 +239,8 @@ function renderDashboard() {
       <div class="value">${stat.value}</div>
     </div>
   `).join('');
+
+  renderProgress();
 
   document.getElementById('dashboard-account-table').innerHTML = state.accounts.map((account) => `
     <tr>
@@ -214,7 +284,7 @@ function renderBookingForm() {
 }
 
 function renderBookings() {
-  document.getElementById('booking-list').innerHTML = state.bookings
+  const bookingRows = state.bookings
     .slice()
     .sort((a, b) => (a.date < b.date ? 1 : -1))
     .map((booking) => {
@@ -223,13 +293,14 @@ function renderBookings() {
       const itemName = state.inventoryItems.find((item) => item.id === booking.inventoryItemId)?.name || '';
       return `
         <tr>
-          <td>${booking.date}</td>
+          <td>${formatDate(booking.date)}</td>
           <td>${booking.documentNo || ''}</td>
           <td>${booking.description}<br><span class="small">${itemName ? 'Artikel: ' + itemName : ''}</span></td>
           <td>${debitAccount?.name || ''}</td>
           <td>${creditAccount?.name || ''}</td>
-          <td>${formatCurrency(booking.amount)}</td>
+          <td class="amount-cell">${formatCurrency(booking.netAmount || booking.amount || 0)}</td>
           <td>${booking.taxType && booking.taxType !== 'none' ? `${labelForTax(booking.taxType)} (${booking.taxMode})` : '—'}</td>
+          <td class="amount-cell">${formatCurrency(booking.grossAmount || booking.amount || 0)}</td>
           <td>
             <button type="button" class="secondary" data-edit-booking="${booking.id}">Bearbeiten</button>
             <button type="button" class="secondary" data-duplicate-booking="${booking.id}">Duplizieren</button>
@@ -239,6 +310,8 @@ function renderBookings() {
       `;
     })
     .join('');
+
+  document.getElementById('booking-list').innerHTML = bookingRows || '<tr><td colspan="9" class="empty-state">Noch keine Buchungen vorhanden.</td></tr>';
 }
 
 function renderPayments() {
@@ -253,22 +326,22 @@ function renderPayments() {
   document.getElementById('payment-booking-list').innerHTML = paymentBookings.length
     ? paymentBookings.map((booking) => `
         <tr>
-          <td>${booking.date}</td>
+          <td>${formatDate(booking.date)}</td>
           <td>${booking.documentNo || ''}</td>
           <td>${booking.description}</td>
-          <td>${formatCurrency(booking.amount)}</td>
+          <td class="amount-cell">${formatCurrency(booking.amount)}</td>
         </tr>
       `).join('')
-    : '<tr><td colspan="4">Noch keine Zahlungen erfasst.</td></tr>';
+    : '<tr><td colspan="4" class="empty-state">Noch keine Zahlungen erfasst.</td></tr>';
 }
 
 function renderInventoryItems() {
-  document.getElementById('inventory-item-list').innerHTML = state.inventoryItems.map((item) => `
+  const itemRows = state.inventoryItems.map((item) => `
     <tr>
       <td>${item.name}</td>
       <td>${item.sku}</td>
       <td>${item.currentStock ?? item.openingStock}</td>
-      <td>${formatCurrency(item.currentValue || 0)}</td>
+      <td class="amount-cell">${formatCurrency(item.currentValue || 0)}</td>
       <td>
         <button type="button" class="secondary" data-edit-item="${item.id}">Bearbeiten</button>
         <button type="button" class="danger" data-delete-item="${item.id}">Löschen</button>
@@ -276,11 +349,13 @@ function renderInventoryItems() {
     </tr>
   `).join('');
 
+  document.getElementById('inventory-item-list').innerHTML = itemRows || '<tr><td colspan="5" class="empty-state">Noch keine Lagerartikel vorhanden.</td></tr>';
   document.getElementById('movement-item').innerHTML = state.inventoryItems.map((item) => `<option value="${item.id}">${item.name}</option>`).join('');
+  updateMovementStockInfo();
 }
 
 function renderInventoryMovements() {
-  document.getElementById('inventory-movement-list').innerHTML = state.inventoryMovements
+  const movementRows = state.inventoryMovements
     .slice()
     .sort((a, b) => (a.date < b.date ? 1 : -1))
     .map((movement) => {
@@ -288,21 +363,37 @@ function renderInventoryMovements() {
       const label = movement.type === 'in' ? 'Zugang' : movement.type === 'out' ? 'Abgang' : 'Korrektur';
       return `
         <tr>
-          <td>${movement.date}</td>
+          <td>${formatDate(movement.date)}</td>
           <td>${item?.name || ''}</td>
           <td>${label}</td>
           <td>${movement.quantity}</td>
-          <td>${formatCurrency(movement.unitValueNet || 0)}</td>
+          <td class="amount-cell">${formatCurrency(movement.unitValueNet || 0)}</td>
           <td>${movement.documentNo || ''}</td>
           <td><button type="button" class="danger" data-delete-movement="${movement.id}">Löschen</button></td>
         </tr>
       `;
     })
     .join('');
+
+  document.getElementById('inventory-movement-list').innerHTML = movementRows || '<tr><td colspan="7" class="empty-state">Noch keine Lagerbewegungen vorhanden.</td></tr>';
 }
 
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+}
+
+function formatDate(dateString) {
+  if (!dateString) return '';
+  const value = new Date(dateString);
+  if (Number.isNaN(value.getTime())) return dateString;
+  return value.toLocaleDateString('de-DE');
+}
+
+function formatDateTime(dateString) {
+  if (!dateString) return '';
+  const value = new Date(dateString);
+  if (Number.isNaN(value.getTime())) return dateString;
+  return `${value.toLocaleDateString('de-DE')} ${value.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
 function labelForType(type) {
@@ -330,6 +421,8 @@ function validateBooking(formData) {
   if (!formData.description) return 'Bitte eine Beschreibung eingeben.';
   if (!formData.debitAccountId || !formData.creditAccountId) return 'Bitte Soll- und Haben-Konto wählen.';
   if (formData.debitAccountId === formData.creditAccountId) return 'Soll- und Haben-Konto dürfen nicht identisch sein.';
+  if (!state.accounts.some((account) => account.id === formData.debitAccountId)) return 'Bitte ein vorhandenes Soll-Konto wählen.';
+  if (!state.accounts.some((account) => account.id === formData.creditAccountId)) return 'Bitte ein vorhandenes Haben-Konto wählen.';
   if (Number(formData.amount) <= 0) return 'Bitte einen Betrag größer als 0 eingeben.';
   return null;
 }
@@ -337,15 +430,38 @@ function validateBooking(formData) {
 function validateInventoryItem(formData) {
   if (!formData.sku) return 'Bitte eine Artikelnummer eingeben.';
   if (!formData.name) return 'Bitte einen Artikelnamen eingeben.';
+  if (Number(formData.openingStock) < 0) return 'Der Anfangsbestand darf nicht negativ sein.';
+  if (Number(formData.purchasePriceNet) < 0 || Number(formData.salePriceNet) < 0) return 'Preise dürfen nicht negativ sein.';
   const exists = state.inventoryItems.some((item) => item.sku === formData.sku && item.id !== editingItemId);
   if (exists) return 'Artikelnummer darf nicht doppelt sein.';
   return null;
 }
 
+function getInventoryItemStock(itemId) {
+  const item = state.inventoryItems.find((entry) => entry.id === itemId);
+  return Number(item?.currentStock ?? item?.openingStock ?? 0);
+}
+
+function updateMovementStockInfo() {
+  const itemId = document.getElementById('movement-item').value;
+  const info = document.getElementById('movement-stock-info');
+  if (!itemId) {
+    info.textContent = 'Bitte einen Artikel wählen.';
+    return;
+  }
+  const item = state.inventoryItems.find((entry) => entry.id === itemId);
+  const stock = getInventoryItemStock(itemId);
+  info.textContent = `Aktueller Bestand: ${stock} ${item?.unit || ''}`.trim();
+}
+
 function validateMovement(formData) {
   if (!formData.date) return 'Bitte ein Datum eingeben.';
-  if (!formData.itemId) return 'Bitte einen Artikel wählen.';
-  if (Number(formData.quantity) < 0) return 'Die Menge darf nicht negativ sein.';
+  if (!formData.itemId) return 'Bitte einen Artikel auswählen.';
+  if (Number(formData.quantity) <= 0) return 'Bitte eine Menge größer als 0 eingeben.';
+  if (Number(formData.unitValueNet) < 0) return 'Der Einzelwert darf nicht negativ sein.';
+  if (formData.type === 'out' && Number(formData.quantity) > getInventoryItemStock(formData.itemId)) {
+    return 'Der Lagerbestand reicht für diesen Abgang nicht aus.';
+  }
   return null;
 }
 
@@ -495,8 +611,8 @@ function handlePaymentSubmit(event) {
     date: formData.get('paymentDate'),
     documentNo: formData.get('paymentDocument'),
     description: `Zahlung: ${description}`,
-    debitAccountId: type === 'deposit' ? accountId : counterAccountId,
-    creditAccountId: type === 'deposit' ? counterAccountId : accountId,
+    debitAccountId: type === 'deposit' ? accountId : type === 'withdrawal' ? counterAccountId : 'account-bank',
+    creditAccountId: type === 'deposit' ? counterAccountId : type === 'withdrawal' ? accountId : 'account-cash',
     amount,
     taxType: 'none',
     taxMode: 'net',
@@ -508,13 +624,17 @@ function handlePaymentSubmit(event) {
     createdAt: new Date().toISOString()
   };
 
-  if (type === 'transfer') {
-    booking.debitAccountId = 'account-bank';
-    booking.creditAccountId = 'account-cash';
-  }
-
   state.bookings.push(booking);
   event.currentTarget.reset();
+  render();
+}
+
+function toggleProgressStep(stepId) {
+  const completedSteps = Array.isArray(state.progress?.completedSteps) ? state.progress.completedSteps : [];
+  const updatedSteps = completedSteps.includes(stepId)
+    ? completedSteps.filter((entry) => entry !== stepId)
+    : [...completedSteps, stepId];
+  state.progress = { completedSteps: updatedSteps, lastUpdated: new Date().toISOString() };
   render();
 }
 
@@ -623,13 +743,28 @@ function loadSampleData() {
 }
 
 function exportJson() {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  state.settings = {
+    ...state.settings,
+    exportedAt: new Date().toISOString()
+  };
+  const exportPayload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    accounts: state.accounts,
+    bookings: state.bookings,
+    inventoryItems: state.inventoryItems,
+    inventoryMovements: state.inventoryMovements,
+    progress: state.progress,
+    settings: state.settings
+  };
+  const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
   link.download = 'buchhaltung-export.json';
   link.click();
   URL.revokeObjectURL(url);
+  saveState();
 }
 
 function exportCsv(type) {
@@ -659,15 +794,21 @@ function handleImport(event) {
   reader.onload = () => {
     try {
       const parsed = JSON.parse(reader.result);
-      if (parsed && typeof parsed === 'object') {
-        state = {
-          accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [],
-          bookings: Array.isArray(parsed.bookings) ? parsed.bookings : [],
-          inventoryItems: Array.isArray(parsed.inventoryItems) ? parsed.inventoryItems : [],
-          inventoryMovements: Array.isArray(parsed.inventoryMovements) ? parsed.inventoryMovements : []
-        };
-        render();
+      const validPayload = parsed && typeof parsed === 'object' && Array.isArray(parsed.accounts) && Array.isArray(parsed.bookings) && Array.isArray(parsed.inventoryItems) && Array.isArray(parsed.inventoryMovements);
+      if (!validPayload) {
+        alert('Die Importdatei ist ungültig.');
+        return;
       }
+      state = {
+        accounts: parsed.accounts,
+        bookings: parsed.bookings,
+        inventoryItems: parsed.inventoryItems,
+        inventoryMovements: parsed.inventoryMovements,
+        progress: parsed.progress && typeof parsed.progress === 'object' ? parsed.progress : { completedSteps: [], lastUpdated: null },
+        settings: parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : { exportedAt: null, createdAt: null, lastSavedAt: null }
+      };
+      recalculateAll();
+      render();
     } catch (error) {
       alert('Die Datei konnte nicht importiert werden.');
     }
@@ -679,6 +820,8 @@ function wireEvents() {
   document.querySelectorAll('.nav-button').forEach((button) => {
     button.addEventListener('click', () => setView(button.dataset.view));
   });
+
+  window.addEventListener('hashchange', syncViewFromHash);
 
   document.getElementById('account-form').addEventListener('submit', handleAccountSubmit);
   document.getElementById('booking-form').addEventListener('submit', handleBookingSubmit);
@@ -700,6 +843,11 @@ function wireEvents() {
 
   document.addEventListener('click', (event) => {
     const target = event.target;
+    const progressButton = target.closest('[data-progress-step]');
+    if (progressButton) {
+      toggleProgressStep(progressButton.dataset.progressStep);
+      return;
+    }
     if (target.matches('[data-delete-booking]')) handleDeleteBooking(target.dataset.deleteBooking);
     if (target.matches('[data-edit-booking]')) handleEditBooking(target.dataset.editBooking);
     if (target.matches('[data-duplicate-booking]')) handleDuplicateBooking(target.dataset.duplicateBooking);
@@ -712,6 +860,7 @@ function wireEvents() {
   document.getElementById('booking-amount').addEventListener('input', updateTaxSummary);
   document.getElementById('booking-tax-mode').addEventListener('change', updateTaxSummary);
   document.getElementById('booking-tax-type').addEventListener('change', updateTaxSummary);
+  document.getElementById('movement-item').addEventListener('change', updateMovementStockInfo);
 
   document.getElementById('export-json').addEventListener('click', exportJson);
   document.getElementById('export-bookings-csv').addEventListener('click', () => exportCsv('bookings'));
@@ -726,7 +875,7 @@ function init() {
   recalculateAll();
   wireEvents();
   render();
-  setView('dashboard');
+  syncViewFromHash();
 }
 
 init();

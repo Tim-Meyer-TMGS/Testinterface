@@ -10,6 +10,9 @@
 - Buchungen und Kontensalden werden berechnet.
 - Lagerartikel und einfache Lagerbewegungen sind vorhanden.
 - Steuerberechnung wird als sichtbare Zusatzinformation gespeichert.
+- Lagerabgänge werden nun vor dem Speichern auf verfügbaren Bestand geprüft.
+- Die Navigation bleibt als Single-Page-Ansicht aufgebaut, nutzt aber jetzt eine hash-basierte Seitenlogik, damit sie sich seitenähnlich anfühlt.
+- Ein speicherbarer Fortschrittsbereich wurde ergänzt, damit abgeschlossene Übungsschritte im Browser erhalten bleiben.
 
 ## Offene Punkte
 - UI weiter verfeinern.

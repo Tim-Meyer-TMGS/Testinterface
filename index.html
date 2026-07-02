@@ -40,6 +40,13 @@
             <div class="stats-grid" id="dashboard-stats"></div>
             <div class="card">
               <div class="section-header">
+                <h3>Fortschritt</h3>
+                <span id="progress-summary" class="small"></span>
+              </div>
+              <div id="progress-list" class="progress-list"></div>
+            </div>
+            <div class="card">
+              <div class="section-header">
                 <h3>Kontenübersicht</h3>
               </div>
               <div class="table-wrapper">
@@ -354,6 +361,10 @@
                 <label class="full-width">
                   Beschreibung
                   <input id="movement-description" name="movementDescription" type="text" required />
+                </label>
+                <label class="full-width">
+                  Bestandshinweis
+                  <div id="movement-stock-info" class="small">Bitte einen Artikel wählen.</div>
                 </label>
                 <div class="form-actions full-width">
                   <button type="submit">Bewegung speichern</button>

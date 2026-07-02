@@ -263,6 +263,26 @@ th {
   min-height: 48px;
 }
 
+.progress-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.progress-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: var(--panel-alt);
+  cursor: pointer;
+}
+
+.progress-item input {
+  margin: 0;
+}
+
 .small {
   color: var(--muted);
   font-size: 0.85rem;
