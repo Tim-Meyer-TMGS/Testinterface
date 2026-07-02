@@ -31,6 +31,7 @@
 - `src/storage.js`: LocalStorage-Adapter und vorbereiteter Server-Adapter.
 - `data/app-data.json`: Seed-Daten für das Praxisbeispiel.
 - `.github/workflows/test.yml`: CI-Tests in GitHub Actions.
+- `vitest.config.js`: grenzt Unit-Tests auf `tests/**/*.test.js` ein, damit Playwright-Specs nicht von Vitest eingesammelt werden.
 
 ## Status
 - Die Anwendung ist zu einer modularen Vanilla-JS-App umgebaut.
@@ -51,7 +52,7 @@
 - Import, Normalisierung und CSV-Export wurden robuster gemacht.
 - `server.js` ist auf ES-Module umgestellt; Schreibzugriff auf `/api/data` ist standardmäßig deaktiviert.
 - npm-Tooling mit Vite, Vitest und Playwright ist vorbereitet.
-- GitHub Actions führt die Node-basierten Tests aus, weil lokal kein Node.js installiert werden kann.
+- GitHub Actions führt die Node-basierten Tests mit Node 24 aus, weil lokal kein Node.js installiert werden kann.
 
 ## Bekannte Einschränkungen
 - Die App ist eine Lern-App, keine GoBD- oder revisionssichere Buchhaltung.

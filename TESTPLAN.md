@@ -2,6 +2,8 @@
 
 ## Automatisierte Tests
 - GitHub Actions Workflow `Test`: installiert Node-Abhängigkeiten, führt Unit-Tests aus und startet Playwright-Smoke-Tests.
+- Unit-Tests liegen in `tests/**/*.test.js`; Playwright-Tests liegen in `tests/**/*.spec.js`.
+- `vitest.config.js` verhindert, dass Playwright-Specs als Unit-Tests ausgeführt werden.
 - Lokal wären `npm test`, `npm run test:e2e` und `npm run check` möglich, falls Node.js verfügbar ist.
 
 ## GitHub-Pages-Test

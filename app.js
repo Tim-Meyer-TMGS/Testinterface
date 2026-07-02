@@ -562,7 +562,16 @@ async function loadSampleData() {
 }
 
 function exportJson() {
-  const payload = { ...state, exportedAt: new Date().toISOString(), settings: { ...state.settings, exportedAt: new Date().toISOString() } };
+  const exportedAt = new Date().toISOString();
+  const payload = {
+    ...state,
+    exportedAt,
+    bookings: state.bookings.map((booking) => ({
+      ...booking,
+      bookingLines: buildBookingLines(booking)
+    })),
+    settings: { ...state.settings, exportedAt }
+  };
   download('buchhaltung-export.json', JSON.stringify(payload, null, 2), 'application/json');
 }
 

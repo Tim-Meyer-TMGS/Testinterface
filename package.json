@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
-    "test": "vitest run",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run",
     "test:e2e": "playwright test",
-    "check": "vitest run"
+    "check": "npm run test:unit"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.3",

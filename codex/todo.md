@@ -3,6 +3,7 @@
 ## Tooling
 - [x] `package.json` mit Vite, Vitest und Playwright anlegen
 - [x] GitHub-Actions-Workflow für Unit- und Browser-Tests anlegen
+- [x] Vitest- und Playwright-Testmuster sauber trennen
 - [ ] Tests über GitHub Actions nach Push auswerten
 - [ ] Optional lokal testen, falls später Node.js verfügbar ist
 

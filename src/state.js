@@ -93,7 +93,12 @@ function normalizeMovement(movement) {
 export function normalizeState(parsed) {
   const fallback = createInitialState();
   if (!parsed || typeof parsed !== 'object') return fallback;
-  const accounts = (Array.isArray(parsed.accounts) && parsed.accounts.length ? parsed.accounts : fallback.accounts).map(normalizeAccount);
+  const rawAccounts = (Array.isArray(parsed.accounts) && parsed.accounts.length ? parsed.accounts : fallback.accounts).map(normalizeAccount);
+  const existingAccountIds = new Set(rawAccounts.map((account) => account.id));
+  const accounts = [
+    ...rawAccounts,
+    ...DEFAULT_ACCOUNTS.filter((account) => !existingAccountIds.has(account.id)).map(normalizeAccount)
+  ];
   const bookings = (Array.isArray(parsed.bookings) ? parsed.bookings : []).map((booking) => normalizeBooking(booking, parsed.bookings || []));
   return {
     schemaVersion: 2,
@@ -131,7 +136,10 @@ export function validateState(state) {
     accountNos.add(account.accountNo);
   }
   const itemIds = new Set(state.inventoryItems.map((item) => item.id));
+  const bookingIds = new Set();
   for (const booking of state.bookings) {
+    if (bookingIds.has(booking.id)) return `Doppelte Buchungs-ID: ${booking.id}`;
+    bookingIds.add(booking.id);
     if (!booking.date || !booking.description) return 'Alle Buchungen benötigen Datum und Beschreibung.';
     if (!accountIds.has(booking.debitAccountId) || !accountIds.has(booking.creditAccountId)) return `Buchung ${booking.documentNo} verweist auf ein fehlendes Konto.`;
     if (booking.debitAccountId === booking.creditAccountId) return `Buchung ${booking.documentNo} nutzt dasselbe Soll- und Haben-Konto.`;
@@ -140,6 +148,7 @@ export function validateState(state) {
   }
   for (const movement of state.inventoryMovements) {
     if (!itemIds.has(movement.itemId)) return `Lagerbewegung ${movement.documentNo || movement.id} verweist auf einen fehlenden Artikel.`;
+    if (movement.linkedBookingId && !bookingIds.has(movement.linkedBookingId)) return `Lagerbewegung ${movement.documentNo || movement.id} verweist auf eine fehlende Buchung.`;
   }
   return null;
 }
