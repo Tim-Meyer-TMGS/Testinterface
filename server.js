@@ -1,10 +1,13 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import http from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const rootDir = __dirname;
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const dataFilePath = path.join(rootDir, 'data', 'app-data.json');
 const port = process.env.PORT || 8000;
+const allowDataWrite = process.env.ALLOW_DATA_WRITE === 'true';
+const maxBodySize = 1024 * 1024;
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -25,19 +28,23 @@ function sendJson(res, statusCode, payload) {
 
 function readDataFile() {
   try {
-    const raw = fs.readFileSync(dataFilePath, 'utf8');
-    return JSON.parse(raw);
-  } catch (error) {
+    return JSON.parse(fs.readFileSync(dataFilePath, 'utf8'));
+  } catch {
     return null;
   }
 }
 
-function writeDataFile(payload) {
-  fs.writeFileSync(dataFilePath, JSON.stringify(payload, null, 2));
+function isValidPayload(payload) {
+  return payload
+    && typeof payload === 'object'
+    && Array.isArray(payload.accounts)
+    && Array.isArray(payload.bookings)
+    && Array.isArray(payload.inventoryItems)
+    && Array.isArray(payload.inventoryMovements);
 }
 
 function serveStaticFile(res, requestPath) {
-  const safePath = path.normalize(requestPath).replace(/^([.][.][/\\])+/g, '');
+  const safePath = path.normalize(decodeURIComponent(requestPath)).replace(/^([.][.][/\\])+/g, '');
   const fullPath = path.join(rootDir, safePath);
   if (!fullPath.startsWith(rootDir)) {
     sendJson(res, 403, { error: 'Forbidden' });
@@ -49,47 +56,58 @@ function serveStaticFile(res, requestPath) {
       sendJson(res, 404, { error: 'Not found' });
       return;
     }
-
-    const ext = path.extname(fullPath).toLowerCase();
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': contentType });
+    res.writeHead(200, { 'Content-Type': MIME_TYPES[path.extname(fullPath).toLowerCase()] || 'application/octet-stream' });
     res.end(content);
+  });
+}
+
+function handlePutData(req, res) {
+  if (!allowDataWrite) {
+    sendJson(res, 403, { error: 'Data writes are disabled. Set ALLOW_DATA_WRITE=true for local write mode.' });
+    return;
+  }
+
+  let body = '';
+  req.on('data', (chunk) => {
+    body += chunk;
+    if (body.length > maxBodySize) {
+      req.destroy();
+    }
+  });
+  req.on('end', () => {
+    try {
+      const parsed = JSON.parse(body);
+      if (!isValidPayload(parsed)) {
+        sendJson(res, 400, { error: 'Ungültiges Datenformat' });
+        return;
+      }
+      fs.writeFileSync(dataFilePath, JSON.stringify(parsed, null, 2));
+      sendJson(res, 200, { ok: true, savedAt: new Date().toISOString() });
+    } catch {
+      sendJson(res, 400, { error: 'Ungültiges JSON' });
+    }
   });
 }
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const pathname = url.pathname;
-
-  if (pathname === '/api/data') {
+  if (url.pathname === '/api/data') {
     if (req.method === 'GET') {
-      const data = readDataFile();
-      sendJson(res, 200, data || {});
+      sendJson(res, 200, readDataFile() || {});
       return;
     }
-
     if (req.method === 'PUT') {
-      let body = '';
-      req.on('data', (chunk) => {
-        body += chunk;
-      });
-      req.on('end', () => {
-        try {
-          const parsed = JSON.parse(body);
-          writeDataFile(parsed);
-          sendJson(res, 200, { ok: true, savedAt: new Date().toISOString() });
-        } catch (error) {
-          sendJson(res, 400, { error: 'Ungültiges JSON' });
-        }
-      });
+      handlePutData(req, res);
       return;
     }
+    sendJson(res, 405, { error: 'Method not allowed' });
+    return;
   }
 
-  const requestedPath = pathname === '/' ? '/index.html' : pathname;
-  serveStaticFile(res, requestedPath);
+  serveStaticFile(res, url.pathname === '/' ? '/index.html' : url.pathname);
 });
 
 server.listen(port, () => {
   console.log(`Server läuft auf http://localhost:${port}`);
+  console.log(`Daten-Schreibmodus: ${allowDataWrite ? 'aktiv' : 'deaktiviert'}`);
 });

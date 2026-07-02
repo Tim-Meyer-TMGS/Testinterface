@@ -1,250 +1,84 @@
-const STORAGE_KEY = 'buchhaltungs-uebung-data-v1';
-const DATA_FILE_URL = './data/app-data.json';
-const DEFAULT_STATE = {
-  schemaVersion: 1,
-  accounts: [],
-  bookings: [],
-  inventoryItems: [],
-  inventoryMovements: [],
-  progress: { completedSteps: [], lastUpdated: null },
-  settings: { exportedAt: null, createdAt: null, lastSavedAt: null }
-};
+import { buildBookingLines, calculateAccountBalances, calculateTax, getBookingDisplayAmount, normalizeBookingAmounts } from './src/accounting.js';
+import { ACCOUNT_IDS, INVENTORY_LINK_LABELS, INVENTORY_LINK_TYPES, TAX_LABELS, TYPE_LABELS } from './src/constants.js';
+import { toCsv } from './src/csv.js';
+import { calculateInventoryItems, syncMovementForBooking, validateMovement } from './src/inventory.js';
+import { generateBookingNumber, generateId, generateNextAccountNumber, normalizeState, validateState } from './src/state.js';
+import { loadSeedState, localStorageAdapter } from './src/storage.js';
 
-let state = createInitialState();
+let state = normalizeState({});
 let currentView = 'dashboard';
 let editingBookingId = null;
 let editingItemId = null;
 
-function getElement(id) {
-  return document.getElementById(id);
+const $ = (id) => document.getElementById(id);
+const formatCurrency = (value) => Number(value || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+const formatDate = (value) => value ? new Date(value).toLocaleDateString('de-DE') : '';
+const formatDateTime = (value) => value ? `${new Date(value).toLocaleDateString('de-DE')} ${new Date(value).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}` : '';
+
+function text(tag, value, className = '') {
+  const node = document.createElement(tag);
+  node.textContent = value ?? '';
+  if (className) node.className = className;
+  return node;
 }
 
-function setStatusMessage(message) {
-  const status = getElement('last-saved');
-  if (status) {
-    status.textContent = message;
-  }
-}
-
-function resetForm(formId, hiddenFieldId = null) {
-  const form = getElement(formId);
-  if (form) {
-    form.reset();
-  }
-  if (hiddenFieldId) {
-    const hiddenField = getElement(hiddenFieldId);
-    if (hiddenField) {
-      hiddenField.value = '';
-    }
-  }
-}
-
-function generateId(prefix) {
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function generateNextAccountNumber() {
-  const numericValues = state.accounts
-    .map((account) => Number(String(account.accountNo || '').trim()))
-    .filter((value) => Number.isFinite(value));
-  const nextValue = numericValues.length ? Math.max(...numericValues) + 10 : 1000;
-  return String(nextValue);
-}
-
-function generateBookingNumber() {
-  const numericValues = state.bookings
-    .map((booking) => Number(String(booking.documentNo || '').match(/(\d+)$/)?.[1]))
-    .filter((value) => Number.isFinite(value));
-  const nextValue = numericValues.length ? Math.max(...numericValues) + 1 : 1000;
-  return `BE-${nextValue}`;
-}
-
-function ensureDataNumbers() {
-  state.accounts = state.accounts.map((account) => ({
-    ...account,
-    accountNo: String(account.accountNo || '').trim() || generateNextAccountNumber()
-  }));
-
-  state.bookings = state.bookings.map((booking) => ({
-    ...booking,
-    documentNo: String(booking.documentNo || '').trim() || generateBookingNumber()
-  }));
-}
-
-function normalizeState(parsed) {
-  return {
-    schemaVersion: parsed?.schemaVersion || 1,
-    accounts: Array.isArray(parsed?.accounts) ? parsed.accounts : [],
-    bookings: Array.isArray(parsed?.bookings) ? parsed.bookings : [],
-    inventoryItems: Array.isArray(parsed?.inventoryItems) ? parsed.inventoryItems : [],
-    inventoryMovements: Array.isArray(parsed?.inventoryMovements) ? parsed.inventoryMovements : [],
-    progress: parsed?.progress && typeof parsed.progress === 'object'
-      ? { completedSteps: Array.isArray(parsed.progress.completedSteps) ? parsed.progress.completedSteps : [], lastUpdated: parsed.progress.lastUpdated || null }
-      : { completedSteps: [], lastUpdated: null },
-    settings: parsed?.settings && typeof parsed.settings === 'object'
-      ? {
-          exportedAt: parsed.settings.exportedAt || null,
-          createdAt: parsed.settings.createdAt || null,
-          lastSavedAt: parsed.settings.lastSavedAt || null
-        }
-      : { exportedAt: null, createdAt: null, lastSavedAt: null }
-  };
-}
-
-async function loadSeedState() {
-  try {
-    const response = await fetch(DATA_FILE_URL, { cache: 'no-store' });
-    if (response.ok) {
-      return normalizeState(await response.json());
-    }
-  } catch (error) {
-    console.error('Fehler beim Laden aus der statischen JSON-Datei', error);
-  }
-
-  return createInitialState();
-}
-
-async function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = normalizeState(JSON.parse(raw));
-      state = parsed;
-      ensureDataNumbers();
-      return state;
-    }
-  } catch (error) {
-    console.error('Fehler beim Laden aus localStorage', error);
-  }
-
-  const parsed = await loadSeedState();
-  state = parsed;
-  ensureDataNumbers();
-  return state;
-}
-
-function createInitialState() {
-  return {
-    schemaVersion: 1,
-    accounts: [],
-    bookings: [],
-    inventoryItems: [],
-    inventoryMovements: [],
-    progress: { completedSteps: [], lastUpdated: null },
-    settings: { exportedAt: null, createdAt: new Date().toISOString(), lastSavedAt: null }
-  };
-}
-
-function saveState() {
-  state.progress = {
-    completedSteps: Array.isArray(state.progress?.completedSteps) ? state.progress.completedSteps : [],
-    lastUpdated: new Date().toISOString()
-  };
-  state.settings = {
-    ...state.settings,
-    lastSavedAt: new Date().toISOString()
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  const timestamp = new Date().toISOString();
-  setStatusMessage('Im Browser gespeichert · ' + formatDateTime(timestamp));
-}
-
-function calculateAccountBalances() {
-  state.accounts = state.accounts.map((account) => {
-    const debitTotal = state.bookings.filter((booking) => booking.debitAccountId === account.id).reduce((sum, booking) => sum + Number(booking.amount || 0), 0);
-    const creditTotal = state.bookings.filter((booking) => booking.creditAccountId === account.id).reduce((sum, booking) => sum + Number(booking.amount || 0), 0);
-    let balance = 0;
-    if (account.type === 'asset' || account.type === 'expense') {
-      balance = debitTotal - creditTotal;
-    } else if (account.type === 'liability' || account.type === 'revenue') {
-      balance = creditTotal - debitTotal;
-    } else if (account.type === 'tax') {
-      balance = 0;
-    }
-    return { ...account, debitTotal, creditTotal, balance };
+function button(label, dataset, className = 'secondary') {
+  const node = document.createElement('button');
+  node.type = 'button';
+  node.className = className;
+  node.textContent = label;
+  Object.entries(dataset).forEach(([key, value]) => {
+    node.dataset[key] = value;
   });
+  return node;
 }
 
-function calculateInventoryStock() {
-  state.inventoryItems = state.inventoryItems.map((item) => {
-    const openingStock = Number(item.openingStock || 0);
-    const totalIn = state.inventoryMovements.filter((movement) => movement.itemId === item.id && movement.type === 'in').reduce((sum, movement) => sum + Number(movement.quantity || 0), 0);
-    const totalOut = state.inventoryMovements.filter((movement) => movement.itemId === item.id && movement.type === 'out').reduce((sum, movement) => sum + Number(movement.quantity || 0), 0);
-    const totalAdjustments = state.inventoryMovements.filter((movement) => movement.itemId === item.id && movement.type === 'adjustment').reduce((sum, movement) => sum + Number(movement.quantity || 0), 0);
-    const currentStock = openingStock + totalIn - totalOut + totalAdjustments;
-    const outMovements = state.inventoryMovements
-      .filter((movement) => movement.itemId === item.id && movement.type === 'out')
-      .sort((a, b) => (a.date < b.date ? -1 : 1));
-    const consumedTotal = outMovements.reduce((sum, movement) => sum + Number(movement.quantity || 0), 0);
-    const oldestDate = outMovements[0]?.date;
-    const newestDate = outMovements[outMovements.length - 1]?.date;
-    const rangeDays = oldestDate && newestDate
-      ? Math.max(7, Math.round((new Date(newestDate) - new Date(oldestDate)) / 86400000) + 1)
-      : 7;
-    const derivedConsumption = outMovements.length ? consumedTotal * 7 / rangeDays : 0;
-    const explicitConsumption = Number(item.consumptionPerWeek || 0);
-    const weeklyConsumption = explicitConsumption > 0 ? explicitConsumption : derivedConsumption;
-    const leadTimeDays = Number(item.leadTimeDays || 7);
-    const safetyStock = Number(item.safetyStock || 0);
-    const effectiveSafetyStock = safetyStock > 0 ? safetyStock : Math.max(0, Math.round(weeklyConsumption * 0.5));
-    const reorderPoint = Math.max(0, Math.round(weeklyConsumption * leadTimeDays / 7 + effectiveSafetyStock));
-    const targetStock = Math.max(reorderPoint, Math.round(weeklyConsumption * 2 + effectiveSafetyStock));
-    const daysUntilEmpty = weeklyConsumption > 0 ? currentStock / weeklyConsumption * 7 : null;
-    const needsReorder = currentStock <= reorderPoint;
-    const recommendedOrderQuantity = Math.max(0, targetStock - currentStock);
-    const status = needsReorder ? 'Nachbestellen' : daysUntilEmpty !== null && daysUntilEmpty <= 14 ? 'Achtung' : 'Im Plan';
-
-    return {
-      ...item,
-      currentStock,
-      currentValue: currentStock * Number(item.purchasePriceNet || 0),
-      weeklyConsumption,
-      leadTimeDays,
-      safetyStock: effectiveSafetyStock,
-      reorderPoint,
-      targetStock,
-      daysUntilEmpty,
-      needsReorder,
-      recommendedOrderQuantity,
-      status
-    };
-  });
+function clear(node) {
+  node.replaceChildren();
 }
 
-function calculateInventoryValue() {
-  state.inventoryItems = state.inventoryItems.map((item) => ({
-    ...item,
-    currentValue: Number(item.currentStock || 0) * Number(item.purchasePriceNet || 0)
-  }));
+function tr(cells) {
+  const row = document.createElement('tr');
+  cells.forEach((cell) => row.append(cell instanceof Node ? cell : text('td', cell)));
+  return row;
 }
 
-function calculateTax(amount, mode, taxType) {
-  const amountNumber = Number(amount || 0);
-  const round2 = (value) => Math.round(value * 100) / 100;
-  if (!taxType || taxType === 'none') {
-    const netAmount = mode === 'gross' ? round2(amountNumber) : round2(amountNumber);
-    return { netAmount, taxAmount: 0, grossAmount: round2(mode === 'gross' ? amountNumber : amountNumber) };
-  }
-  const rate = taxType.includes('19') ? 0.19 : 0.07;
-  if (mode === 'net') {
-    const netAmount = round2(amountNumber);
-    const taxAmount = round2(netAmount * rate);
-    return { netAmount, taxAmount, grossAmount: round2(netAmount + taxAmount) };
-  }
-  const grossAmount = round2(amountNumber);
-  const netAmount = round2(grossAmount / (1 + rate));
-  const taxAmount = round2(grossAmount - netAmount);
-  return { netAmount, taxAmount, grossAmount };
+function emptyRow(colspan, message) {
+  const td = text('td', message, 'empty-state');
+  td.colSpan = colspan;
+  return tr([td]);
 }
 
-function recalculateAll() {
-  calculateAccountBalances();
-  calculateInventoryStock();
-  calculateInventoryValue();
+function option(value, label, selected = false) {
+  const node = document.createElement('option');
+  node.value = value;
+  node.textContent = label;
+  node.selected = selected;
+  return node;
+}
+
+function selectOptions(select, entries, selectedValue = '') {
+  const current = selectedValue || select.value;
+  select.replaceChildren(...entries.map((entry) => option(entry.value, entry.label, entry.value === current)));
+}
+
+function setStatus(message) {
+  $('last-saved').textContent = message;
+}
+
+function recalculate(nextState = state) {
+  const inventoryItems = calculateInventoryItems(nextState.inventoryItems, nextState.inventoryMovements);
+  const accounts = calculateAccountBalances(nextState.accounts, nextState.bookings);
+  return { ...nextState, accounts, inventoryItems };
+}
+
+async function persist(message = 'Im Browser gespeichert') {
+  state = recalculate(await localStorageAdapter.save(state));
+  setStatus(`${message} · ${formatDateTime(state.settings.lastSavedAt)}`);
 }
 
 function render() {
-  recalculateAll();
+  state = recalculate(state);
   renderDashboard();
   renderAccounts();
   renderBookingForm();
@@ -252,14 +86,13 @@ function render() {
   renderPayments();
   renderInventoryItems();
   renderInventoryMovements();
-  saveState();
 }
 
 function setView(view, updateHash = true) {
-  currentView = view;
-  document.querySelectorAll('.view').forEach((section) => section.classList.remove('active'));
-  document.getElementById(`view-${view}`).classList.add('active');
-  document.getElementById('page-title').textContent = {
+  const views = ['dashboard', 'accounts', 'bookings', 'payments', 'inventory', 'import-export', 'settings'];
+  currentView = views.includes(view) ? view : 'dashboard';
+  document.querySelectorAll('.view').forEach((section) => section.classList.toggle('active', section.id === `view-${currentView}`));
+  $('page-title').textContent = {
     dashboard: 'Dashboard',
     accounts: 'Konten',
     bookings: 'Buchungen',
@@ -267,530 +100,290 @@ function setView(view, updateHash = true) {
     inventory: 'Lager',
     'import-export': 'Export / Import',
     settings: 'Einstellungen'
-  }[view];
-  document.querySelectorAll('.nav-button').forEach((button) => {
-    button.classList.toggle('active', button.dataset.view === view);
-  });
-
+  }[currentView];
+  document.querySelectorAll('.nav-button').forEach((navButton) => navButton.classList.toggle('active', navButton.dataset.view === currentView));
   if (updateHash) {
-    const hash = view === 'dashboard' ? '' : `#${view}`;
-    const nextUrl = `${window.location.pathname}${window.location.search}${hash}`;
-    if (window.location.href !== `${window.location.origin}${nextUrl}`) {
-      window.history.replaceState(null, '', nextUrl);
-    }
+    const hash = currentView === 'dashboard' ? '' : `#${currentView}`;
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
   }
 }
 
 function syncViewFromHash() {
-  const views = ['dashboard', 'accounts', 'bookings', 'payments', 'inventory', 'import-export', 'settings'];
-  const requestedView = window.location.hash.replace('#', '');
-  const resolvedView = views.includes(requestedView) ? requestedView : 'dashboard';
-  setView(resolvedView, false);
+  setView(window.location.hash.replace('#', ''), false);
 }
 
 function renderDashboard() {
   const accountMap = Object.fromEntries(state.accounts.map((account) => [account.id, account]));
-  const cash = accountMap['account-cash']?.balance || 0;
-  const bank = accountMap['account-bank']?.balance || 0;
-  const receivables = accountMap['account-receivables']?.balance || 0;
-  const payables = accountMap['account-payables']?.balance || 0;
   const inventoryValue = state.inventoryItems.reduce((sum, item) => sum + Number(item.currentValue || 0), 0);
   const stats = [
-    { label: 'Kassenbestand', value: formatCurrency(cash) },
-    { label: 'Bankbestand', value: formatCurrency(bank) },
-    { label: 'Forderungen offen', value: formatCurrency(receivables) },
-    { label: 'Verbindlichkeiten offen', value: formatCurrency(payables) },
-    { label: 'Gespeicherte Buchungen', value: state.bookings.length },
-    { label: 'Anzahl Lagerartikel', value: state.inventoryItems.length },
-    { label: 'Lagerwert gesamt', value: formatCurrency(inventoryValue) },
-    { label: 'Letzter Speicherstatus', value: state.settings?.lastSavedAt ? formatDateTime(state.settings.lastSavedAt) : 'Noch nicht gespeichert' }
+    ['Kassenbestand', formatCurrency(accountMap[ACCOUNT_IDS.cash]?.balance || 0)],
+    ['Bankbestand', formatCurrency(accountMap[ACCOUNT_IDS.bank]?.balance || 0)],
+    ['Forderungen offen', formatCurrency(accountMap[ACCOUNT_IDS.receivables]?.balance || 0)],
+    ['Verbindlichkeiten offen', formatCurrency(accountMap[ACCOUNT_IDS.payables]?.balance || 0)],
+    ['Gespeicherte Buchungen', state.bookings.length],
+    ['Anzahl Lagerartikel', state.inventoryItems.length],
+    ['Lagerwert gesamt', formatCurrency(inventoryValue)],
+    ['Letzter Speicherstatus', state.settings.lastSavedAt ? formatDateTime(state.settings.lastSavedAt) : 'Noch nicht gespeichert']
   ];
+  $('dashboard-stats').replaceChildren(...stats.map(([label, value]) => {
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    card.append(text('div', label, 'label'), text('div', value, 'value'));
+    return card;
+  }));
 
-  document.getElementById('dashboard-stats').innerHTML = stats.map((stat) => `
-    <div class="stat-card">
-      <div class="label">${stat.label}</div>
-      <div class="value">${stat.value}</div>
-    </div>
-  `).join('');
+  renderRows('dashboard-account-table', state.accounts.map((account) => tr([
+    account.accountNo, account.name, TYPE_LABELS[account.type], formatCurrency(account.debitTotal), formatCurrency(account.creditTotal), formatCurrency(account.balance)
+  ])));
+  renderRows('dashboard-article-table', state.inventoryItems.map((item) => tr([item.name, item.sku, formatCurrency(item.salePriceNet), item.currentStock, formatCurrency(item.currentValue)])));
+  renderRows('dashboard-stock-table', state.inventoryItems.map((item) => {
+    const lastMovement = state.inventoryMovements.filter((movement) => movement.itemId === item.id).sort((a, b) => b.date.localeCompare(a.date))[0];
+    return tr([item.name, item.unit || '-', item.currentStock, lastMovement ? `${formatDate(lastMovement.date)} · ${lastMovement.description}` : 'Keine Bewegung']);
+  }));
+  renderRows('dashboard-booking-history', state.bookings.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5).map((booking) => tr([
+    formatDate(booking.date), booking.documentNo, booking.description, formatCurrency(getBookingDisplayAmount(booking))
+  ])));
+  renderRows('dashboard-inventory-summary', state.inventoryItems.map((item) => tr([item.name, item.currentStock, formatCurrency(item.currentValue)])));
+}
 
-  document.getElementById('dashboard-account-table').innerHTML = state.accounts.map((account) => `
-    <tr>
-      <td>${account.accountNo || ''}</td>
-      <td>${account.name}</td>
-      <td>${labelForType(account.type)}</td>
-      <td>${formatCurrency(account.debitTotal)}</td>
-      <td>${formatCurrency(account.creditTotal)}</td>
-      <td>${formatCurrency(account.balance)}</td>
-    </tr>
-  `).join('');
-
-  document.getElementById('dashboard-article-table').innerHTML = state.inventoryItems.map((item) => `
-    <tr>
-      <td>${item.name}</td>
-      <td>${item.sku}</td>
-      <td>${formatCurrency(item.salePriceNet || 0)}</td>
-      <td>${item.currentStock ?? item.openingStock}</td>
-      <td>${formatCurrency(item.currentValue || 0)}</td>
-    </tr>
-  `).join('');
-
-  document.getElementById('dashboard-stock-table').innerHTML = state.inventoryItems.map((item) => {
-    const lastMovement = state.inventoryMovements
-      .filter((movement) => movement.itemId === item.id)
-      .slice()
-      .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
-    return `
-      <tr>
-        <td>${item.name}</td>
-        <td>${item.unit || '-'}</td>
-        <td>${item.currentStock ?? item.openingStock}</td>
-        <td>${lastMovement ? `${formatDate(lastMovement.date)} · ${lastMovement.description}` : 'Keine Bewegung'}</td>
-      </tr>
-    `;
-  }).join('');
-
-  document.getElementById('dashboard-booking-history').innerHTML = state.bookings
-    .slice()
-    .sort((a, b) => (a.date < b.date ? 1 : -1))
-    .slice(0, 5)
-    .map((booking) => `
-      <tr>
-        <td>${formatDate(booking.date)}</td>
-        <td>${booking.documentNo || ''}</td>
-        <td>${booking.description}</td>
-        <td class="amount-cell">${formatCurrency(booking.amount)}</td>
-      </tr>
-    `)
-    .join('');
-
-  document.getElementById('dashboard-inventory-summary').innerHTML = state.inventoryItems.map((item) => `
-    <tr>
-      <td>${item.name}</td>
-      <td>${item.currentStock ?? item.openingStock}</td>
-      <td class="amount-cell">${formatCurrency(item.currentValue || 0)}</td>
-    </tr>
-  `).join('');
+function renderRows(id, rows, fallback = null) {
+  const node = $(id);
+  node.replaceChildren(...(rows.length ? rows : fallback ? [fallback] : []));
 }
 
 function renderAccounts() {
-  document.getElementById('account-list').innerHTML = state.accounts.map((account) => `
-    <tr>
-      <td>${account.accountNo || ''}</td>
-      <td>${account.name}</td>
-      <td>${labelForType(account.type)}</td>
-      <td>${formatCurrency(account.debitTotal)}</td>
-      <td>${formatCurrency(account.creditTotal)}</td>
-      <td>${formatCurrency(account.balance)}</td>
-      <td>
-        <button type="button" class="secondary" data-select-account="${account.id}">Anzeigen</button>
-        <button type="button" class="secondary" data-delete-account="${account.id}">Löschen</button>
-      </td>
-    </tr>
-  `).join('');
-
-  const selectedAccountId = state.settings?.selectedAccountId || state.accounts[0]?.id;
-  if (selectedAccountId) {
-    renderAccountDetails(selectedAccountId);
-  }
+  renderRows('account-list', state.accounts.map((account) => {
+    const actions = text('td', '');
+    actions.append(button('Anzeigen', { selectAccount: account.id }), button('Löschen', { deleteAccount: account.id }, 'danger'));
+    return tr([account.accountNo, account.name, TYPE_LABELS[account.type], formatCurrency(account.debitTotal), formatCurrency(account.creditTotal), formatCurrency(account.balance), actions]);
+  }), emptyRow(7, 'Noch keine Konten vorhanden.'));
+  renderAccountDetails(state.settings.selectedAccountId || state.accounts[0]?.id);
 }
 
 function renderAccountDetails(accountId) {
   const account = state.accounts.find((entry) => entry.id === accountId);
   if (!account) {
-    document.getElementById('account-detail-summary').innerHTML = 'Bitte ein Konto auswählen.';
-    document.getElementById('account-detail-bookings').innerHTML = '<tr><td colspan="5" class="empty-state">Kein Konto ausgewählt.</td></tr>';
+    $('account-detail-summary').textContent = 'Bitte ein Konto auswählen.';
+    renderRows('account-detail-bookings', [], emptyRow(5, 'Kein Konto ausgewählt.'));
     return;
   }
-
-  const bookings = state.bookings.filter((booking) => booking.debitAccountId === account.id || booking.creditAccountId === account.id);
-  const bookingRows = bookings
-    .slice()
-    .sort((a, b) => (a.date < b.date ? 1 : -1))
-    .map((booking) => {
-      const isDebit = booking.debitAccountId === account.id;
-      return `
-        <tr>
-          <td>${formatDate(booking.date)}</td>
-          <td>${booking.documentNo || '-'}</td>
-          <td>${booking.description}</td>
-          <td class="amount-cell">${formatCurrency(booking.amount)}</td>
-          <td>${isDebit ? 'Soll' : 'Haben'}</td>
-        </tr>
-      `;
-    })
-    .join('');
-
-  document.getElementById('account-detail-summary').innerHTML = `
-    <strong>${account.accountNo || ''} ${account.name}</strong><br />
-    Typ: ${labelForType(account.type)} · Soll: ${formatCurrency(account.debitTotal)} · Haben: ${formatCurrency(account.creditTotal)} · Saldo: ${formatCurrency(account.balance)}
-  `;
-  document.getElementById('account-detail-bookings').innerHTML = bookingRows || '<tr><td colspan="5" class="empty-state">Keine Buchungen für dieses Konto vorhanden.</td></tr>';
+  $('account-detail-summary').textContent = `${account.accountNo} ${account.name} · ${TYPE_LABELS[account.type]} · Soll ${formatCurrency(account.debitTotal)} · Haben ${formatCurrency(account.creditTotal)} · Saldo ${formatCurrency(account.balance)}`;
+  const rows = state.bookings
+    .filter((booking) => buildBookingLines(booking).some((line) => line.accountId === account.id))
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .flatMap((booking) => buildBookingLines(booking).filter((line) => line.accountId === account.id).map((line) => tr([
+      formatDate(booking.date), booking.documentNo, booking.description, formatCurrency(line.amount), line.side === 'debit' ? 'Soll' : 'Haben'
+    ])));
+  renderRows('account-detail-bookings', rows, emptyRow(5, 'Keine Buchungen für dieses Konto vorhanden.'));
 }
 
 function renderBookingForm() {
-  const debitSelect = document.getElementById('booking-debit');
-  const creditSelect = document.getElementById('booking-credit');
-  const itemSelect = document.getElementById('booking-item');
-  const bookingDate = document.getElementById('booking-date');
-
-  debitSelect.innerHTML = state.accounts.map((account) => `<option value="${account.id}" ${account.id === 'account-cash' ? 'selected' : ''}>${account.name}</option>`).join('');
-  creditSelect.innerHTML = state.accounts.map((account) => `<option value="${account.id}" ${account.id === 'account-revenue' ? 'selected' : ''}>${account.name}</option>`).join('');
-  itemSelect.innerHTML = ['<option value="">Kein Artikel</option>', ...state.inventoryItems.map((item) => `<option value="${item.id}">${item.name}</option>`)].join('');
-
-  if (!bookingDate.value) {
-    bookingDate.value = new Date().toISOString().slice(0, 10);
+  const accountOptions = state.accounts.map((account) => ({ value: account.id, label: `${account.accountNo} ${account.name}` }));
+  selectOptions($('booking-debit'), accountOptions, $('booking-debit').value || ACCOUNT_IDS.bank);
+  selectOptions($('booking-credit'), accountOptions, $('booking-credit').value || ACCOUNT_IDS.sales);
+  selectOptions($('booking-item'), [{ value: '', label: 'Kein Artikel' }, ...state.inventoryItems.map((item) => ({ value: item.id, label: item.name }))], $('booking-item').value);
+  const linkSelect = $('booking-inventory-link');
+  if (linkSelect) {
+    selectOptions(linkSelect, INVENTORY_LINK_TYPES.map((type) => ({ value: type, label: INVENTORY_LINK_LABELS[type] })), linkSelect.value || 'none');
   }
+  if (!$('booking-date').value) $('booking-date').value = new Date().toISOString().slice(0, 10);
+  updateTaxSummary();
 }
 
 function renderBookings() {
-  const bookingRows = state.bookings
-    .slice()
-    .sort((a, b) => (a.date < b.date ? 1 : -1))
-    .map((booking) => {
-      const debitAccount = state.accounts.find((account) => account.id === booking.debitAccountId);
-      const creditAccount = state.accounts.find((account) => account.id === booking.creditAccountId);
-      const itemName = state.inventoryItems.find((item) => item.id === booking.inventoryItemId)?.name || '';
-      return `
-        <tr>
-          <td>${formatDate(booking.date)}</td>
-          <td>${booking.documentNo || ''}</td>
-          <td>${booking.description}<br><span class="small">${itemName ? 'Artikel: ' + itemName : ''}</span></td>
-          <td>${debitAccount?.name || ''}</td>
-          <td>${creditAccount?.name || ''}</td>
-          <td class="amount-cell">${formatCurrency(booking.netAmount || booking.amount || 0)}</td>
-          <td>${booking.taxType && booking.taxType !== 'none' ? `${labelForTax(booking.taxType)} (${booking.taxMode})` : '—'}</td>
-          <td class="amount-cell">${formatCurrency(booking.grossAmount || booking.amount || 0)}</td>
-          <td>
-            <button type="button" class="secondary" data-select-booking="${booking.id}">Anzeigen</button>
-            <button type="button" class="secondary" data-edit-booking="${booking.id}">Bearbeiten</button>
-            <button type="button" class="secondary" data-duplicate-booking="${booking.id}">Duplizieren</button>
-            <button type="button" class="danger" data-delete-booking="${booking.id}">Löschen</button>
-          </td>
-        </tr>
-      `;
-    })
-    .join('');
-
-  document.getElementById('booking-list').innerHTML = bookingRows || '<tr><td colspan="9" class="empty-state">Noch keine Buchungen vorhanden.</td></tr>';
-
-  const selectedBookingId = state.settings?.selectedBookingId || state.bookings[0]?.id;
-  if (selectedBookingId) {
-    renderBookingDetails(selectedBookingId);
-  }
+  const rows = state.bookings.slice().sort((a, b) => b.date.localeCompare(a.date)).map((booking) => {
+    const debit = state.accounts.find((account) => account.id === booking.debitAccountId);
+    const credit = state.accounts.find((account) => account.id === booking.creditAccountId);
+    const item = state.inventoryItems.find((entry) => entry.id === booking.inventoryItemId);
+    const actions = text('td', '');
+    actions.append(
+      button('Anzeigen', { selectBooking: booking.id }),
+      button('Bearbeiten', { editBooking: booking.id }),
+      button('Duplizieren', { duplicateBooking: booking.id }),
+      button('Löschen', { deleteBooking: booking.id }, 'danger')
+    );
+    return tr([
+      formatDate(booking.date),
+      booking.documentNo,
+      `${booking.description}${item ? ` · Artikel: ${item.name}` : ''}`,
+      debit ? `${debit.accountNo} ${debit.name}` : '',
+      credit ? `${credit.accountNo} ${credit.name}` : '',
+      formatCurrency(booking.netAmount),
+      booking.taxType === 'none' ? 'Keine Steuer' : `${TAX_LABELS[booking.taxType]} (${booking.taxMode})`,
+      formatCurrency(booking.taxAmount),
+      formatCurrency(booking.grossAmount),
+      actions
+    ]);
+  });
+  renderRows('booking-list', rows, emptyRow(10, 'Noch keine Buchungen vorhanden.'));
+  renderBookingDetails(state.settings.selectedBookingId || state.bookings[0]?.id);
 }
 
 function renderBookingDetails(bookingId) {
   const booking = state.bookings.find((entry) => entry.id === bookingId);
   if (!booking) {
-    document.getElementById('booking-detail-summary').innerHTML = 'Bitte eine Buchung auswählen.';
-    document.getElementById('booking-detail-fields').innerHTML = '<tr><td colspan="2" class="empty-state">Keine Buchung ausgewählt.</td></tr>';
+    $('booking-detail-summary').textContent = 'Bitte eine Buchung auswählen.';
+    renderRows('booking-detail-fields', [], emptyRow(2, 'Keine Buchung ausgewählt.'));
     return;
   }
-
-  const debitAccount = state.accounts.find((account) => account.id === booking.debitAccountId);
-  const creditAccount = state.accounts.find((account) => account.id === booking.creditAccountId);
-  const item = state.inventoryItems.find((entry) => entry.id === booking.inventoryItemId);
-
-  const rows = [
-    ['Beleg', booking.documentNo || '-'],
-    ['Beschreibung', booking.description],
-    ['Datum', formatDate(booking.date)],
-    ['Soll-Konto', `${debitAccount?.accountNo || ''} ${debitAccount?.name || ''}`.trim()],
-    ['Haben-Konto', `${creditAccount?.accountNo || ''} ${creditAccount?.name || ''}`.trim()],
-    ['Betrag', formatCurrency(booking.amount)],
-    ['Steuer', booking.taxType && booking.taxType !== 'none' ? `${labelForTax(booking.taxType)} (${booking.taxMode})` : 'Keine Steuer'],
-    ['Artikel', item?.name || 'Kein Artikel'],
-    ['Menge', booking.quantity ? `${booking.quantity} ${item?.unit || ''}`.trim() : '-']
-  ];
-
-  document.getElementById('booking-detail-summary').innerHTML = `<strong>${booking.documentNo || booking.description}</strong><br />${booking.description}`;
-  document.getElementById('booking-detail-fields').innerHTML = rows.map(([label, value]) => `<tr><td>${label}</td><td>${value}</td></tr>`).join('');
+  const lines = buildBookingLines(booking);
+  $('booking-detail-summary').textContent = `${booking.documentNo} · ${booking.description}`;
+  renderRows('booking-detail-fields', [
+    tr(['Datum', formatDate(booking.date)]),
+    tr(['Netto', formatCurrency(booking.netAmount)]),
+    tr(['Steuer', formatCurrency(booking.taxAmount)]),
+    tr(['Brutto', formatCurrency(booking.grossAmount)]),
+    ...lines.map((line) => {
+      const account = state.accounts.find((entry) => entry.id === line.accountId);
+      return tr([line.side === 'debit' ? 'Soll' : 'Haben', `${account?.accountNo || ''} ${account?.name || ''} · ${formatCurrency(line.amount)} · ${line.label}`]);
+    })
+  ]);
 }
 
 function renderPayments() {
-  const paymentSelects = [document.getElementById('payment-account'), document.getElementById('payment-counter-account')];
-  paymentSelects.forEach((select) => {
-    select.innerHTML = state.accounts.map((account) => `<option value="${account.id}">${account.name}</option>`).join('');
-  });
-  document.getElementById('payment-account').value = 'account-bank';
-  document.getElementById('payment-counter-account').value = 'account-cash';
-
-  const paymentBookings = state.bookings.filter((booking) => booking.description.startsWith('Zahlung:'));
-  document.getElementById('payment-booking-list').innerHTML = paymentBookings.length
-    ? paymentBookings.map((booking) => `
-        <tr>
-          <td>${formatDate(booking.date)}</td>
-          <td>${booking.documentNo || ''}</td>
-          <td>${booking.description}</td>
-          <td class="amount-cell">${formatCurrency(booking.amount)}</td>
-        </tr>
-      `).join('')
-    : '<tr><td colspan="4" class="empty-state">Noch keine Zahlungen erfasst.</td></tr>';
-}
-
-function renderInventoryForecasts() {
-  const forecastCards = state.inventoryItems.map((item) => {
-    const maxScale = Math.max(1, Number(item.targetStock || item.currentStock || item.openingStock || 1));
-    const fillPercent = Math.min(100, Math.round((Number(item.currentStock || 0) / maxScale) * 100));
-    const reservePercent = Math.min(100 - fillPercent, Math.round((Number(item.safetyStock || 0) / maxScale) * 100));
-    const reorderPercent = Math.min(100 - fillPercent - reservePercent, Math.max(0, Math.round(((Number(item.reorderPoint || 0) - Number(item.safetyStock || 0)) / maxScale) * 100)));
-    const daysText = item.daysUntilEmpty === null || Number.isNaN(item.daysUntilEmpty) ? 'Keine Verbrauchsdaten' : `${Math.round(item.daysUntilEmpty)} Tage`;
-    const statusClass = item.needsReorder ? 'critical' : item.status === 'Achtung' ? 'warn' : 'ok';
-    return `
-      <div class="forecast-card">
-        <div class="forecast-header">
-          <strong>${item.name}</strong>
-          <span class="status-pill ${statusClass}">${item.status}</span>
-        </div>
-        <div class="forecast-bar" aria-label="Bestandsdiagramm">
-          <div class="forecast-segment available" style="width:${fillPercent}%"></div>
-          ${reservePercent ? `<div class="forecast-segment reserve" style="width:${reservePercent}%"></div>` : ''}
-          ${reorderPercent ? `<div class="forecast-segment reorder" style="width:${reorderPercent}%"></div>` : ''}
-          <div class="forecast-marker" style="left:${Math.min(100, Math.round((Number(item.reorderPoint || 0) / maxScale) * 100))}%"></div>
-        </div>
-        <div class="forecast-metrics">
-          <div><span>Aktueller Bestand</span><strong>${item.currentStock ?? item.openingStock}</strong></div>
-          <div><span>Verbrauch/Woche</span><strong>${item.weeklyConsumption ? item.weeklyConsumption.toFixed(1) : '0.0'}</strong></div>
-          <div><span>Meldebestand</span><strong>${item.reorderPoint}</strong></div>
-          <div><span>Reserve</span><strong>${item.safetyStock}</strong></div>
-          <div><span>Verbleibend</span><strong>${daysText}</strong></div>
-          <div><span>Nachbestellung</span><strong>${item.needsReorder ? `${item.recommendedOrderQuantity} ${item.unit || ''}` : 'nicht nötig'}</strong></div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  document.getElementById('inventory-forecast-grid').innerHTML = forecastCards || '<div class="empty-state">Noch keine Lagerartikel vorhanden.</div>';
+  const accountOptions = state.accounts.map((account) => ({ value: account.id, label: `${account.accountNo} ${account.name}` }));
+  selectOptions($('payment-account'), accountOptions, $('payment-account').value || ACCOUNT_IDS.bank);
+  selectOptions($('payment-counter-account'), accountOptions, $('payment-counter-account').value || ACCOUNT_IDS.cash);
+  const rows = state.bookings.filter((booking) => booking.description.startsWith('Zahlung:')).map((booking) => tr([
+    formatDate(booking.date), booking.documentNo, booking.description, formatCurrency(booking.grossAmount)
+  ]));
+  renderRows('payment-booking-list', rows, emptyRow(4, 'Noch keine Zahlungen erfasst.'));
 }
 
 function renderInventoryItems() {
-  const itemRows = state.inventoryItems.map((item) => `
-    <tr>
-      <td>${item.name}</td>
-      <td>${item.sku}</td>
-      <td>${item.currentStock ?? item.openingStock}</td>
-      <td class="amount-cell">${formatCurrency(item.currentValue || 0)}</td>
-      <td>
-        <button type="button" class="secondary" data-edit-item="${item.id}">Bearbeiten</button>
-        <button type="button" class="secondary" data-adjust-item="${item.id}">Korrektur</button>
-        <button type="button" class="danger" data-delete-item="${item.id}">Löschen</button>
-      </td>
-    </tr>
-  `).join('');
-
-  document.getElementById('inventory-item-list').innerHTML = itemRows || '<tr><td colspan="5" class="empty-state">Noch keine Lagerartikel vorhanden.</td></tr>';
-  document.getElementById('movement-item').innerHTML = state.inventoryItems.map((item) => `<option value="${item.id}">${item.name}</option>`).join('');
+  const rows = state.inventoryItems.map((item) => {
+    const actions = text('td', '');
+    actions.append(button('Bearbeiten', { editItem: item.id }), button('Korrektur', { adjustItem: item.id }), button('Löschen', { deleteItem: item.id }, 'danger'));
+    return tr([item.name, item.sku, item.currentStock, formatCurrency(item.currentValue), actions]);
+  });
+  renderRows('inventory-item-list', rows, emptyRow(5, 'Noch keine Lagerartikel vorhanden.'));
+  selectOptions($('movement-item'), state.inventoryItems.map((item) => ({ value: item.id, label: item.name })), $('movement-item').value);
   renderInventoryForecasts();
   updateMovementStockInfo();
 }
 
+function renderInventoryForecasts() {
+  const grid = $('inventory-forecast-grid');
+  clear(grid);
+  if (!state.inventoryItems.length) {
+    grid.append(text('div', 'Noch keine Lagerartikel vorhanden.', 'empty-state'));
+    return;
+  }
+  state.inventoryItems.forEach((item) => {
+    const card = document.createElement('div');
+    card.className = 'forecast-card';
+    const header = document.createElement('div');
+    header.className = 'forecast-header';
+    header.append(text('strong', item.name), text('span', item.status, `status-pill ${item.needsReorder ? 'critical' : item.status === 'Achtung' ? 'warn' : 'ok'}`));
+    const metrics = document.createElement('div');
+    metrics.className = 'forecast-metrics';
+    [
+      ['Aktueller Bestand', item.currentStock],
+      ['Verbrauch/Woche', item.weeklyConsumption.toFixed(1)],
+      ['Meldebestand', item.reorderPoint],
+      ['Reserve', item.safetyStock],
+      ['Verbleibend', item.daysUntilEmpty === null ? 'Keine Verbrauchsdaten' : `${Math.round(item.daysUntilEmpty)} Tage`],
+      ['Nachbestellung', item.needsReorder ? `${item.recommendedOrderQuantity} ${item.unit || ''}`.trim() : 'nicht nötig']
+    ].forEach(([label, value]) => {
+      const metric = document.createElement('div');
+      metric.append(text('span', label), text('strong', value));
+      metrics.append(metric);
+    });
+    card.append(header, metrics);
+    grid.append(card);
+  });
+}
+
 function renderInventoryMovements() {
-  const movementRows = state.inventoryMovements
-    .slice()
-    .sort((a, b) => (a.date < b.date ? 1 : -1))
-    .map((movement) => {
-      const item = state.inventoryItems.find((entry) => entry.id === movement.itemId);
-      const label = movement.type === 'in' ? 'Zugang' : movement.type === 'out' ? 'Abgang' : 'Korrektur';
-      return `
-        <tr>
-          <td>${formatDate(movement.date)}</td>
-          <td>${item?.name || ''}</td>
-          <td>${label}</td>
-          <td>${movement.quantity}</td>
-          <td class="amount-cell">${formatCurrency(movement.unitValueNet || 0)}</td>
-          <td>${movement.documentNo || ''}</td>
-          <td><button type="button" class="danger" data-delete-movement="${movement.id}">Löschen</button></td>
-        </tr>
-      `;
-    })
-    .join('');
-
-  document.getElementById('inventory-movement-list').innerHTML = movementRows || '<tr><td colspan="7" class="empty-state">Noch keine Lagerbewegungen vorhanden.</td></tr>';
-}
-
-function formatCurrency(value) {
-  return Number(value || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
-}
-
-function formatDate(dateString) {
-  if (!dateString) return '';
-  const value = new Date(dateString);
-  if (Number.isNaN(value.getTime())) return dateString;
-  return value.toLocaleDateString('de-DE');
-}
-
-function formatDateTime(dateString) {
-  if (!dateString) return '';
-  const value = new Date(dateString);
-  if (Number.isNaN(value.getTime())) return dateString;
-  return `${value.toLocaleDateString('de-DE')} ${value.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`;
-}
-
-function labelForType(type) {
-  return {
-    asset: 'Aktivkonto',
-    liability: 'Passivkonto',
-    revenue: 'Ertragskonto',
-    expense: 'Aufwandskonto',
-    tax: 'Steuerkonto'
-  }[type] || type;
-}
-
-function labelForTax(taxType) {
-  return {
-    none: 'Keine Steuer',
-    vat19: '19% USt',
-    vat7: '7% USt',
-    input19: '19% Vorsteuer',
-    input7: '7% Vorsteuer'
-  }[taxType] || taxType;
-}
-
-function validateBooking(formData) {
-  if (!formData.date) return 'Bitte ein Datum eingeben.';
-  if (!formData.description) return 'Bitte eine Beschreibung eingeben.';
-  if (!formData.debitAccountId || !formData.creditAccountId) return 'Bitte Soll- und Haben-Konto wählen.';
-  if (formData.debitAccountId === formData.creditAccountId) return 'Soll- und Haben-Konto dürfen nicht identisch sein.';
-  if (!state.accounts.some((account) => account.id === formData.debitAccountId)) return 'Bitte ein vorhandenes Soll-Konto wählen.';
-  if (!state.accounts.some((account) => account.id === formData.creditAccountId)) return 'Bitte ein vorhandenes Haben-Konto wählen.';
-  if (Number(formData.amount) <= 0) return 'Bitte einen Betrag größer als 0 eingeben.';
-  if (formData.inventoryItemId && (!formData.quantity || Number(formData.quantity) <= 0)) return 'Bitte eine Menge für den Lagerartikel eingeben.';
-  return null;
-}
-
-function validateInventoryItem(formData) {
-  if (!formData.sku) return 'Bitte eine Artikelnummer eingeben.';
-  if (!formData.name) return 'Bitte einen Artikelnamen eingeben.';
-  if (Number(formData.openingStock) < 0) return 'Der Anfangsbestand darf nicht negativ sein.';
-  if (Number(formData.purchasePriceNet) < 0 || Number(formData.salePriceNet) < 0) return 'Preise dürfen nicht negativ sein.';
-  if (Number(formData.consumptionPerWeek) < 0) return 'Der Verbrauch pro Woche darf nicht negativ sein.';
-  if (Number(formData.leadTimeDays) < 0) return 'Die Lieferzeit darf nicht negativ sein.';
-  if (Number(formData.safetyStock) < 0) return 'Der Sicherheitsbestand darf nicht negativ sein.';
-  const exists = state.inventoryItems.some((item) => item.sku === formData.sku && item.id !== editingItemId);
-  if (exists) return 'Artikelnummer darf nicht doppelt sein.';
-  return null;
-}
-
-function getInventoryItemStock(itemId) {
-  const item = state.inventoryItems.find((entry) => entry.id === itemId);
-  return Number(item?.currentStock ?? item?.openingStock ?? 0);
-}
-
-function updateMovementStockInfo() {
-  const itemId = document.getElementById('movement-item').value;
-  const info = document.getElementById('movement-stock-info');
-  if (!itemId) {
-    info.textContent = 'Bitte einen Artikel wählen.';
-    return;
-  }
-  const item = state.inventoryItems.find((entry) => entry.id === itemId);
-  const stock = getInventoryItemStock(itemId);
-  info.textContent = `Aktueller Bestand: ${stock} ${item?.unit || ''}`.trim();
-}
-
-function validateMovement(formData) {
-  if (!formData.date) return 'Bitte ein Datum eingeben.';
-  if (!formData.itemId) return 'Bitte einen Artikel auswählen.';
-  if (formData.type !== 'adjustment' && Number(formData.quantity) <= 0) return 'Bitte eine Menge größer als 0 eingeben.';
-  if (formData.type === 'adjustment' && Number(formData.quantity) === 0) return 'Bitte eine Menge größer als 0 eingeben.';
-  if (Number(formData.unitValueNet) < 0) return 'Der Einzelwert darf nicht negativ sein.';
-  if (formData.type === 'out' && Number(formData.quantity) > getInventoryItemStock(formData.itemId)) {
-    return 'Der Lagerbestand reicht für diesen Abgang nicht aus.';
-  }
-  return null;
-}
-
-function inferInventoryMovementTypeForBooking(booking) {
-  const debitAccountId = booking.debitAccountId;
-  const creditAccountId = booking.creditAccountId;
-
-  const purchaseLikeAccounts = ['account-purchases', 'account-expenses', 'account-input-vat'];
-  const salesLikeAccounts = ['account-sales', 'account-revenue'];
-
-  if (purchaseLikeAccounts.includes(debitAccountId) || purchaseLikeAccounts.includes(creditAccountId) || creditAccountId === 'account-payables') {
-    return 'in';
-  }
-
-  if (salesLikeAccounts.includes(debitAccountId) || salesLikeAccounts.includes(creditAccountId) || debitAccountId === 'account-bank' || debitAccountId === 'account-cash') {
-    return 'out';
-  }
-
-  return null;
-}
-
-function createInventoryMovementFromBooking(booking) {
-  if (!booking.inventoryItemId || !booking.quantity || Number(booking.quantity) <= 0) {
-    return null;
-  }
-
-  const item = state.inventoryItems.find((entry) => entry.id === booking.inventoryItemId);
-  if (!item) {
-    return null;
-  }
-
-  const movementType = inferInventoryMovementTypeForBooking(booking);
-  if (!movementType) {
-    return null;
-  }
-
-  const unitValueNet = Number(item.purchasePriceNet || 0) > 0
-    ? Number(item.purchasePriceNet)
-    : Number(booking.amount || 0) / Number(booking.quantity || 1);
-
-  return {
-    id: generateId('movement'),
-    date: booking.date,
-    itemId: booking.inventoryItemId,
-    type: movementType,
-    quantity: Number(booking.quantity),
-    unitValueNet,
-    description: movementType === 'out' ? 'Lagerabgang' : 'Wareneingang',
-    documentNo: booking.documentNo || '',
-    linkedBookingId: booking.id
-  };
-}
-
-function syncInventoryMovementForBooking(booking) {
-  const existingMovement = state.inventoryMovements.find((movement) => movement.linkedBookingId === booking.id);
-  const nextMovement = createInventoryMovementFromBooking(booking);
-
-  if (!nextMovement) {
-    if (existingMovement) {
-      state.inventoryMovements = state.inventoryMovements.filter((movement) => movement.id !== existingMovement.id);
-    }
-    return;
-  }
-
-  if (existingMovement) {
-    state.inventoryMovements = state.inventoryMovements.map((movement) => (movement.id === existingMovement.id ? { ...movement, ...nextMovement, id: existingMovement.id } : movement));
-  } else {
-    state.inventoryMovements.push(nextMovement);
-  }
+  const rows = state.inventoryMovements.slice().sort((a, b) => b.date.localeCompare(a.date)).map((movement) => {
+    const item = state.inventoryItems.find((entry) => entry.id === movement.itemId);
+    const actions = text('td', '');
+    actions.append(button('Löschen', { deleteMovement: movement.id }, 'danger'));
+    return tr([formatDate(movement.date), item?.name || '', movement.type === 'in' ? 'Zugang' : movement.type === 'out' ? 'Abgang' : 'Korrektur', movement.quantity, formatCurrency(movement.unitValueNet), movement.documentNo, actions]);
+  });
+  renderRows('inventory-movement-list', rows, emptyRow(7, 'Noch keine Lagerbewegungen vorhanden.'));
 }
 
 function buildBookingFromForm(formData, bookingId = null) {
-  return {
+  return normalizeBookingAmounts({
     id: bookingId || generateId('booking'),
     date: formData.get('bookingDate'),
-    documentNo: String(formData.get('bookingDocument') || '').trim() || generateBookingNumber(),
-    description: formData.get('bookingDescription'),
+    documentNo: String(formData.get('bookingDocument') || '').trim() || generateBookingNumber(state.bookings),
+    description: String(formData.get('bookingDescription') || '').trim(),
     debitAccountId: formData.get('bookingDebit'),
     creditAccountId: formData.get('bookingCredit'),
     amount: Number(formData.get('bookingAmount')),
     taxType: formData.get('bookingTaxType') || 'none',
     taxMode: formData.get('bookingTaxMode') || 'net',
-    netAmount: 0,
-    taxAmount: 0,
-    grossAmount: 0,
     inventoryItemId: formData.get('bookingItem') || null,
+    inventoryLinkType: formData.get('bookingInventoryLink') || 'none',
     quantity: formData.get('bookingQuantity') ? Number(formData.get('bookingQuantity')) : null,
-    createdAt: new Date().toISOString()
-  };
+    createdAt: state.bookings.find((booking) => booking.id === bookingId)?.createdAt || new Date().toISOString()
+  });
 }
 
-function buildInventoryItemFromForm(formData, itemId = null) {
-  return {
-    id: itemId || generateId('item'),
+function validateBooking(booking, currentState = state) {
+  if (!booking.date) return 'Bitte ein Datum eingeben.';
+  if (!booking.description) return 'Bitte eine Beschreibung eingeben.';
+  if (!currentState.accounts.some((account) => account.id === booking.debitAccountId)) return 'Bitte ein vorhandenes Soll-Konto wählen.';
+  if (!currentState.accounts.some((account) => account.id === booking.creditAccountId)) return 'Bitte ein vorhandenes Haben-Konto wählen.';
+  if (booking.debitAccountId === booking.creditAccountId) return 'Soll- und Haben-Konto dürfen nicht identisch sein.';
+  if (Number(booking.amount) <= 0) return 'Bitte einen Betrag größer als 0 eingeben.';
+  if (booking.inventoryLinkType !== 'none') {
+    if (!booking.inventoryItemId) return 'Bitte einen Lagerartikel auswählen.';
+    if (!booking.quantity || Number(booking.quantity) <= 0) return 'Bitte eine Menge für den Lagerartikel eingeben.';
+    const movement = {
+      date: booking.date,
+      itemId: booking.inventoryItemId,
+      type: booking.inventoryLinkType,
+      quantity: Number(booking.quantity),
+      unitValueNet: 0
+    };
+    return validateMovement(movement, currentState, booking.id);
+  }
+  return null;
+}
+
+async function commit(nextState, message) {
+  state = normalizeState(nextState);
+  state = recalculate(state);
+  await persist(message);
+  render();
+}
+
+async function handleBookingSubmit(event) {
+  event.preventDefault();
+  const booking = buildBookingFromForm(new FormData(event.currentTarget), $('booking-id').value || null);
+  const error = validateBooking(booking);
+  if (error) return alert(error);
+
+  const withoutBooking = state.bookings.filter((entry) => entry.id !== booking.id);
+  let nextState = { ...state, bookings: [...withoutBooking, booking] };
+  nextState = syncMovementForBooking(nextState, booking);
+  editingBookingId = null;
+  event.currentTarget.reset();
+  $('booking-id').value = '';
+  $('booking-form-title').textContent = 'Neue Buchung';
+  await commit(nextState, 'Buchung gespeichert');
+}
+
+async function handleAccountSubmit(event) {
+  event.preventDefault();
+  const formData = new FormData(event.currentTarget);
+  const name = String(formData.get('accountName') || '').trim();
+  if (!name) return alert('Bitte einen Kontonamen eingeben.');
+  const accountNo = String(formData.get('accountNo') || '').trim() || generateNextAccountNumber(state.accounts);
+  if (state.accounts.some((account) => account.accountNo === accountNo)) return alert('Diese Kontonummer ist bereits vorhanden.');
+  const account = { id: generateId('account'), accountNo, name, type: formData.get('accountType') || 'asset' };
+  event.currentTarget.reset();
+  await commit({ ...state, accounts: [...state.accounts, account] }, 'Konto gespeichert');
+}
+
+async function handleInventoryItemSubmit(event) {
+  event.preventDefault();
+  const formData = new FormData(event.currentTarget);
+  const item = {
+    id: $('inventory-item-id').value || generateId('item'),
     sku: String(formData.get('inventorySku') || '').trim(),
     name: String(formData.get('inventoryName') || '').trim(),
     category: String(formData.get('inventoryCategory') || '').trim(),
@@ -802,111 +395,37 @@ function buildInventoryItemFromForm(formData, itemId = null) {
     leadTimeDays: Number(formData.get('inventoryLeadTime') || 7),
     safetyStock: Number(formData.get('inventorySafetyStock') || 0)
   };
+  if (!item.sku || !item.name) return alert('Bitte Artikelnummer und Artikelnamen eingeben.');
+  if (state.inventoryItems.some((entry) => entry.sku === item.sku && entry.id !== item.id)) return alert('Artikelnummer darf nicht doppelt sein.');
+  if ([item.openingStock, item.purchasePriceNet, item.salePriceNet, item.consumptionPerWeek, item.leadTimeDays, item.safetyStock].some((value) => value < 0)) return alert('Bestände, Preise und Planwerte dürfen nicht negativ sein.');
+  editingItemId = null;
+  event.currentTarget.reset();
+  $('inventory-item-id').value = '';
+  await commit({ ...state, inventoryItems: [...state.inventoryItems.filter((entry) => entry.id !== item.id), item] }, 'Artikel gespeichert');
 }
 
-function buildInventoryMovementFromForm(formData) {
-  return {
+async function handleInventoryMovementSubmit(event) {
+  event.preventDefault();
+  const formData = new FormData(event.currentTarget);
+  const movement = {
     id: generateId('movement'),
     date: formData.get('movementDate'),
     itemId: formData.get('movementItem'),
     type: formData.get('movementType') || 'in',
     quantity: Number(formData.get('movementQuantity') || 0),
     unitValueNet: Number(formData.get('movementValue') || 0),
-    description: formData.get('movementDescription'),
-    documentNo: formData.get('movementDocument'),
+    description: String(formData.get('movementDescription') || '').trim(),
+    documentNo: String(formData.get('movementDocument') || '').trim(),
     linkedBookingId: null
   };
-}
-
-function handleBookingSubmit(event) {
-  event.preventDefault();
-  const formData = new FormData(event.currentTarget);
-  const booking = buildBookingFromForm(formData, getElement('booking-id').value || null);
-
-  const error = validateBooking({ ...booking, amount: booking.amount });
-  if (error) {
-    alert(error);
-    return;
-  }
-
-  const tax = calculateTax(booking.amount, booking.taxMode, booking.taxType);
-  booking.netAmount = tax.netAmount;
-  booking.taxAmount = tax.taxAmount;
-  booking.grossAmount = tax.grossAmount;
-
-  if (editingBookingId) {
-    state.bookings = state.bookings.map((entry) => (entry.id === editingBookingId ? booking : entry));
-    editingBookingId = null;
-  } else {
-    state.bookings.push(booking);
-  }
-
-  syncInventoryMovementForBooking(booking);
-
+  const error = validateMovement(movement, state);
+  if (error) return alert(error);
+  if (!movement.description) return alert('Bitte eine Beschreibung eingeben.');
   event.currentTarget.reset();
-  document.getElementById('booking-id').value = '';
-  document.getElementById('booking-form-title').textContent = 'Neue Buchung';
-  document.getElementById('booking-date').value = new Date().toISOString().slice(0, 10);
-  render();
+  await commit({ ...state, inventoryMovements: [...state.inventoryMovements, movement] }, 'Lagerbewegung gespeichert');
 }
 
-function handleAccountSubmit(event) {
-  event.preventDefault();
-  const formData = new FormData(event.currentTarget);
-  const name = String(formData.get('accountName') || '').trim();
-  if (!name) {
-    alert('Bitte einen Kontonamen eingeben.');
-    return;
-  }
-  const accountNo = String(formData.get('accountNo') || '').trim() || generateNextAccountNumber();
-  state.accounts.push({
-    id: generateId('account'),
-    accountNo,
-    name,
-    type: formData.get('accountType') || 'asset',
-    debitTotal: 0,
-    creditTotal: 0,
-    balance: 0
-  });
-  event.currentTarget.reset();
-  render();
-}
-
-function handleInventoryItemSubmit(event) {
-  event.preventDefault();
-  const formData = new FormData(event.currentTarget);
-  const item = buildInventoryItemFromForm(formData, getElement('inventory-item-id').value || null);
-  const error = validateInventoryItem(item);
-  if (error) {
-    alert(error);
-    return;
-  }
-  if (editingItemId) {
-    state.inventoryItems = state.inventoryItems.map((entry) => (entry.id === editingItemId ? item : entry));
-    editingItemId = null;
-  } else {
-    state.inventoryItems.push(item);
-  }
-  resetForm('inventory-item-form', 'inventory-item-id');
-  getElement('inventory-item-cancel').style.display = 'none';
-  render();
-}
-
-function handleInventoryMovementSubmit(event) {
-  event.preventDefault();
-  const formData = new FormData(event.currentTarget);
-  const movement = buildInventoryMovementFromForm(formData);
-  const error = validateMovement(movement);
-  if (error) {
-    alert(error);
-    return;
-  }
-  state.inventoryMovements.push(movement);
-  event.currentTarget.reset();
-  render();
-}
-
-function handlePaymentSubmit(event) {
+async function handlePaymentSubmit(event) {
   event.preventDefault();
   const formData = new FormData(event.currentTarget);
   const type = formData.get('paymentType');
@@ -914,245 +433,176 @@ function handlePaymentSubmit(event) {
   const counterAccountId = formData.get('paymentCounterAccount');
   const amount = Number(formData.get('paymentAmount'));
   const description = String(formData.get('paymentDescription') || '').trim();
-  if (!description) {
-    alert('Bitte eine Beschreibung eingeben.');
-    return;
-  }
-  if (!accountId || !counterAccountId) {
-    alert('Bitte beide Konten wählen.');
-    return;
-  }
-  if (amount <= 0) {
-    alert('Bitte einen Betrag größer als 0 eingeben.');
-    return;
-  }
-
-  const booking = {
+  if (!description || amount <= 0 || accountId === counterAccountId) return alert('Bitte gültige Zahlungsdaten eingeben.');
+  const booking = normalizeBookingAmounts({
     id: generateId('booking'),
     date: formData.get('paymentDate'),
-    documentNo: String(formData.get('paymentDocument') || '').trim() || generateBookingNumber(),
+    documentNo: String(formData.get('paymentDocument') || '').trim() || generateBookingNumber(state.bookings),
     description: `Zahlung: ${description}`,
-    debitAccountId: type === 'deposit' ? accountId : type === 'withdrawal' ? counterAccountId : 'account-bank',
-    creditAccountId: type === 'deposit' ? counterAccountId : type === 'withdrawal' ? accountId : 'account-cash',
+    debitAccountId: type === 'deposit' ? accountId : type === 'withdrawal' ? counterAccountId : ACCOUNT_IDS.bank,
+    creditAccountId: type === 'deposit' ? counterAccountId : type === 'withdrawal' ? accountId : ACCOUNT_IDS.cash,
     amount,
     taxType: 'none',
     taxMode: 'net',
-    netAmount: amount,
-    taxAmount: 0,
-    grossAmount: amount,
+    inventoryLinkType: 'none',
     inventoryItemId: null,
     quantity: null,
     createdAt: new Date().toISOString()
-  };
-
-  state.bookings.push(booking);
+  });
   event.currentTarget.reset();
-  render();
+  await commit({ ...state, bookings: [...state.bookings, booking] }, 'Zahlung gespeichert');
 }
 
-function handleDeleteBooking(id) {
-  const booking = state.bookings.find((entry) => entry.id === id);
-  state.bookings = state.bookings.filter((entry) => entry.id !== id);
-  if (state.settings?.selectedBookingId === id) {
-    state.settings = { ...state.settings, selectedBookingId: null };
-  }
-  if (booking?.inventoryItemId) {
-    state.inventoryMovements = state.inventoryMovements.filter((movement) => movement.linkedBookingId !== id);
-  }
-  render();
-}
-
-function handleSelectBooking(id) {
-  state.settings = { ...state.settings, selectedBookingId: id };
-  renderBookingDetails(id);
+async function handleDeleteBooking(id) {
+  const nextState = {
+    ...state,
+    bookings: state.bookings.filter((booking) => booking.id !== id),
+    inventoryMovements: state.inventoryMovements.filter((movement) => movement.linkedBookingId !== id),
+    settings: { ...state.settings, selectedBookingId: state.settings.selectedBookingId === id ? null : state.settings.selectedBookingId }
+  };
+  await commit(nextState, 'Buchung gelöscht');
 }
 
 function handleEditBooking(id) {
   const booking = state.bookings.find((entry) => entry.id === id);
   if (!booking) return;
   editingBookingId = id;
-  document.getElementById('booking-form-title').textContent = 'Buchung bearbeiten';
-  document.getElementById('booking-id').value = booking.id;
-  document.getElementById('booking-date').value = booking.date;
-  document.getElementById('booking-document').value = booking.documentNo || '';
-  document.getElementById('booking-description').value = booking.description;
-  document.getElementById('booking-debit').value = booking.debitAccountId;
-  document.getElementById('booking-credit').value = booking.creditAccountId;
-  document.getElementById('booking-amount').value = booking.amount;
-  document.getElementById('booking-tax-type').value = booking.taxType || 'none';
-  document.getElementById('booking-tax-mode').value = booking.taxMode || 'net';
-  document.getElementById('booking-item').value = booking.inventoryItemId || '';
-  document.getElementById('booking-quantity').value = booking.quantity || '';
+  $('booking-form-title').textContent = 'Buchung bearbeiten';
+  $('booking-id').value = booking.id;
+  $('booking-date').value = booking.date;
+  $('booking-document').value = booking.documentNo;
+  $('booking-description').value = booking.description;
+  $('booking-debit').value = booking.debitAccountId;
+  $('booking-credit').value = booking.creditAccountId;
+  $('booking-amount').value = booking.amount;
+  $('booking-tax-type').value = booking.taxType;
+  $('booking-tax-mode').value = booking.taxMode;
+  $('booking-item').value = booking.inventoryItemId || '';
+  $('booking-inventory-link').value = booking.inventoryLinkType || 'none';
+  $('booking-quantity').value = booking.quantity || '';
   updateTaxSummary();
   setView('bookings');
 }
 
-function handleDuplicateBooking(id) {
-  const booking = state.bookings.find((entry) => entry.id === id);
-  if (!booking) return;
-  const duplicate = {
-    ...booking,
-    id: generateId('booking'),
-    documentNo: generateBookingNumber(),
-    createdAt: new Date().toISOString()
-  };
-  state.bookings.push(duplicate);
-  render();
+async function handleDuplicateBooking(id) {
+  const source = state.bookings.find((booking) => booking.id === id);
+  if (!source) return;
+  const duplicate = { ...source, id: generateId('booking'), documentNo: generateBookingNumber(state.bookings), createdAt: new Date().toISOString() };
+  const error = validateBooking(duplicate);
+  if (error) return alert(error);
+  let nextState = { ...state, bookings: [...state.bookings, duplicate] };
+  nextState = syncMovementForBooking(nextState, duplicate);
+  await commit(nextState, 'Buchung dupliziert');
 }
 
-function handleDeleteAccount(id) {
-  state.accounts = state.accounts.filter((account) => account.id !== id);
-  if (state.settings?.selectedAccountId === id) {
-    state.settings = { ...state.settings, selectedAccountId: null };
-  }
-  render();
+async function handleDeleteAccount(id) {
+  if (state.bookings.some((booking) => booking.debitAccountId === id || booking.creditAccountId === id)) return alert('Dieses Konto wird in Buchungen verwendet und kann nicht gelöscht werden.');
+  await commit({ ...state, accounts: state.accounts.filter((account) => account.id !== id) }, 'Konto gelöscht');
 }
 
-function handleSelectAccount(id) {
-  state.settings = { ...state.settings, selectedAccountId: id };
-  renderAccountDetails(id);
+async function handleDeleteItem(id) {
+  if (state.bookings.some((booking) => booking.inventoryItemId === id)) return alert('Dieser Artikel wird in Buchungen verwendet und kann nicht gelöscht werden.');
+  if (state.inventoryMovements.some((movement) => movement.itemId === id)) return alert('Dieser Artikel hat Lagerbewegungen und kann nicht gelöscht werden.');
+  await commit({ ...state, inventoryItems: state.inventoryItems.filter((item) => item.id !== id) }, 'Artikel gelöscht');
 }
 
-function handleDeleteItem(id) {
-  state.inventoryItems = state.inventoryItems.filter((item) => item.id !== id);
-  state.inventoryMovements = state.inventoryMovements.filter((movement) => movement.itemId !== id);
-  render();
+async function handleDeleteMovement(id) {
+  const movement = state.inventoryMovements.find((entry) => entry.id === id);
+  if (movement?.linkedBookingId) return alert('Diese Lagerbewegung gehört zu einer Buchung. Bitte die Buchung bearbeiten oder löschen.');
+  await commit({ ...state, inventoryMovements: state.inventoryMovements.filter((entry) => entry.id !== id) }, 'Lagerbewegung gelöscht');
 }
 
-function handleAdjustItem(id) {
+async function handleAdjustItem(id) {
   const item = state.inventoryItems.find((entry) => entry.id === id);
   if (!item) return;
-
-  const deltaInput = prompt('Bestandskorrektur eingeben (z. B. +5 oder -2):', '0');
-  if (deltaInput === null) return;
-
-  const delta = Number(deltaInput);
-  if (!Number.isFinite(delta) || delta === 0) {
-    alert('Bitte eine gültige Zahl eingeben.');
-    return;
-  }
-
-  const description = prompt('Beschreibung der Korrektur:', 'Bestandskorrektur');
-  state.inventoryMovements.push({
-    id: generateId('movement'),
-    date: new Date().toISOString().slice(0, 10),
-    itemId: item.id,
-    type: 'adjustment',
-    quantity: delta,
-    unitValueNet: Number(item.purchasePriceNet || 0),
-    description: description || 'Bestandskorrektur',
-    documentNo: '',
-    linkedBookingId: null
-  });
-  render();
+  const delta = Number(prompt('Bestandskorrektur eingeben (z. B. +5 oder -2):', '0'));
+  if (!Number.isFinite(delta) || delta === 0) return alert('Bitte eine gültige Zahl eingeben.');
+  const description = prompt('Beschreibung der Korrektur:', 'Bestandskorrektur') || 'Bestandskorrektur';
+  const movement = { id: generateId('movement'), date: new Date().toISOString().slice(0, 10), itemId: id, type: 'adjustment', quantity: delta, unitValueNet: item.purchasePriceNet, description, documentNo: '', linkedBookingId: null };
+  await commit({ ...state, inventoryMovements: [...state.inventoryMovements, movement] }, 'Bestand korrigiert');
 }
 
 function handleEditItem(id) {
   const item = state.inventoryItems.find((entry) => entry.id === id);
   if (!item) return;
   editingItemId = id;
-  document.getElementById('inventory-item-id').value = item.id;
-  document.getElementById('inventory-sku').value = item.sku;
-  document.getElementById('inventory-name').value = item.name;
-  document.getElementById('inventory-category').value = item.category;
-  document.getElementById('inventory-unit').value = item.unit;
-  document.getElementById('inventory-opening').value = item.openingStock;
-  document.getElementById('inventory-purchase').value = item.purchasePriceNet;
-  document.getElementById('inventory-sale').value = item.salePriceNet;
-  document.getElementById('inventory-consumption').value = item.consumptionPerWeek ?? '';
-  document.getElementById('inventory-lead-time').value = item.leadTimeDays ?? 7;
-  document.getElementById('inventory-safety-stock').value = item.safetyStock ?? '';
+  $('inventory-item-id').value = item.id;
+  $('inventory-sku').value = item.sku;
+  $('inventory-name').value = item.name;
+  $('inventory-category').value = item.category;
+  $('inventory-unit').value = item.unit;
+  $('inventory-opening').value = item.openingStock;
+  $('inventory-purchase').value = item.purchasePriceNet;
+  $('inventory-sale').value = item.salePriceNet;
+  $('inventory-consumption').value = item.consumptionPerWeek;
+  $('inventory-lead-time').value = item.leadTimeDays;
+  $('inventory-safety-stock').value = item.safetyStock;
   setView('inventory');
 }
 
-function handleDeleteMovement(id) {
-  state.inventoryMovements = state.inventoryMovements.filter((movement) => movement.id !== id);
-  render();
+function updateTaxSummary() {
+  const result = calculateTax(Number($('booking-amount').value || 0), $('booking-tax-mode').value, $('booking-tax-type').value);
+  $('booking-tax-summary').textContent = `Netto: ${formatCurrency(result.netAmount)} | Steuer: ${formatCurrency(result.taxAmount)} | Brutto: ${formatCurrency(result.grossAmount)}`;
 }
 
-function updateTaxSummary() {
-  const amount = Number(document.getElementById('booking-amount').value || 0);
-  const mode = document.getElementById('booking-tax-mode').value || 'net';
-  const taxType = document.getElementById('booking-tax-type').value || 'none';
-  const result = calculateTax(amount, mode, taxType);
-  document.getElementById('booking-tax-summary').textContent = `Netto: ${formatCurrency(result.netAmount)} | Steuer: ${formatCurrency(result.taxAmount)} | Brutto: ${formatCurrency(result.grossAmount)}`;
+function updateMovementStockInfo() {
+  const item = state.inventoryItems.find((entry) => entry.id === $('movement-item').value);
+  $('movement-stock-info').textContent = item ? `Aktueller Bestand: ${item.currentStock} ${item.unit || ''}`.trim() : 'Bitte einen Artikel wählen.';
 }
 
 async function resetData() {
-  if (!confirm('Alle Daten wirklich löschen?')) return;
-  localStorage.removeItem(STORAGE_KEY);
-  const parsed = await loadSeedState();
-  state = parsed;
-  ensureDataNumbers();
-  recalculateAll();
-  saveState();
+  if (!confirm('Alle Daten wirklich zurücksetzen?')) return;
+  state = await localStorageAdapter.reset();
   render();
+  setStatus('Seed-Daten geladen');
 }
 
 async function loadSampleData() {
-  const parsed = await loadSeedState();
-  state = parsed;
-  ensureDataNumbers();
-  recalculateAll();
-  saveState();
-  render();
+  await commit(await loadSeedState(), 'Beispieldaten geladen');
 }
 
 function exportJson() {
-  state.settings = {
-    ...state.settings,
-    exportedAt: new Date().toISOString()
-  };
-  const exportPayload = {
-    schemaVersion: 1,
-    exportedAt: new Date().toISOString(),
-    ...state
-  };
-  const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'buchhaltung-export.json';
-  link.click();
-  URL.revokeObjectURL(url);
-  saveState();
+  const payload = { ...state, exportedAt: new Date().toISOString(), settings: { ...state.settings, exportedAt: new Date().toISOString() } };
+  download('buchhaltung-export.json', JSON.stringify(payload, null, 2), 'application/json');
 }
 
 function exportCsv(type) {
-  let csv = '';
-  if (type === 'bookings') {
-    csv = ['Datum;Beleg;Beschreibung;Soll;Haben;Betrag'].concat(state.bookings.map((booking) => `${booking.date};${booking.documentNo || ''};${booking.description};${findAccountName(booking.debitAccountId)};${findAccountName(booking.creditAccountId)};${booking.amount}`)).join('\n');
-  } else {
-    csv = ['Artikel;SKU;Bestand;Wert'].concat(state.inventoryItems.map((item) => `${item.name};${item.sku};${item.currentStock ?? item.openingStock};${item.currentValue || 0}`)).join('\n');
-  }
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const rows = type === 'bookings'
+    ? [['Datum', 'Beleg', 'Beschreibung', 'Soll', 'Haben', 'Netto', 'Steuerart', 'Steuerbetrag', 'Brutto'], ...state.bookings.map((booking) => [
+        booking.date,
+        booking.documentNo,
+        booking.description,
+        state.accounts.find((account) => account.id === booking.debitAccountId)?.name || '',
+        state.accounts.find((account) => account.id === booking.creditAccountId)?.name || '',
+        booking.netAmount,
+        TAX_LABELS[booking.taxType] || booking.taxType,
+        booking.taxAmount,
+        booking.grossAmount
+      ])]
+    : [['Artikel', 'SKU', 'Bestand', 'Wert'], ...state.inventoryItems.map((item) => [item.name, item.sku, item.currentStock, item.currentValue])];
+  download(type === 'bookings' ? 'journal.csv' : 'lager.csv', toCsv(rows), 'text/csv;charset=utf-8;');
+}
+
+function download(filename, content, type) {
+  const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = type === 'bookings' ? 'journal.csv' : 'lager.csv';
+  link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
-}
-
-function findAccountName(id) {
-  return state.accounts.find((account) => account.id === id)?.name || '';
 }
 
 function handleImport(event) {
   const file = event.target.files?.[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
-      const parsed = JSON.parse(reader.result);
-      const validPayload = parsed && typeof parsed === 'object' && Array.isArray(parsed.accounts) && Array.isArray(parsed.bookings) && Array.isArray(parsed.inventoryItems) && Array.isArray(parsed.inventoryMovements);
-      if (!validPayload) {
-        alert('Die Importdatei ist ungültig.');
-        return;
-      }
-      state = normalizeState(parsed);
-      recalculateAll();
-      render();
+      const imported = normalizeState(JSON.parse(reader.result));
+      const error = validateState(imported);
+      if (error) return alert(error);
+      await commit(imported, 'Import gespeichert');
     } catch (error) {
       alert('Die Datei konnte nicht importiert werden.');
     }
@@ -1161,79 +611,69 @@ function handleImport(event) {
 }
 
 function wireEvents() {
-  document.querySelectorAll('.nav-button').forEach((button) => {
-    button.addEventListener('click', () => {
-      setView(button.dataset.view);
-      document.body.classList.remove('menu-open');
-      const toggle = document.getElementById('menu-toggle');
-      if (toggle) {
-        toggle.setAttribute('aria-expanded', 'false');
-      }
-    });
+  document.querySelectorAll('.nav-button').forEach((navButton) => navButton.addEventListener('click', () => {
+    setView(navButton.dataset.view);
+    document.body.classList.remove('menu-open');
+    $('menu-toggle')?.setAttribute('aria-expanded', 'false');
+  }));
+  $('menu-toggle')?.addEventListener('click', () => {
+    const isOpen = document.body.classList.toggle('menu-open');
+    $('menu-toggle').setAttribute('aria-expanded', String(isOpen));
   });
-
-  const menuToggle = document.getElementById('menu-toggle');
-  if (menuToggle) {
-    menuToggle.addEventListener('click', () => {
-      const isOpen = document.body.classList.toggle('menu-open');
-      menuToggle.setAttribute('aria-expanded', String(isOpen));
-    });
-  }
-
   window.addEventListener('hashchange', syncViewFromHash);
-
-  document.getElementById('account-form').addEventListener('submit', handleAccountSubmit);
-  document.getElementById('booking-form').addEventListener('submit', handleBookingSubmit);
-  document.getElementById('payment-form').addEventListener('submit', handlePaymentSubmit);
-  document.getElementById('inventory-item-form').addEventListener('submit', handleInventoryItemSubmit);
-  document.getElementById('inventory-movement-form').addEventListener('submit', handleInventoryMovementSubmit);
-  document.getElementById('booking-cancel').addEventListener('click', () => {
+  $('account-form').addEventListener('submit', handleAccountSubmit);
+  $('booking-form').addEventListener('submit', handleBookingSubmit);
+  $('payment-form').addEventListener('submit', handlePaymentSubmit);
+  $('inventory-item-form').addEventListener('submit', handleInventoryItemSubmit);
+  $('inventory-movement-form').addEventListener('submit', handleInventoryMovementSubmit);
+  $('booking-cancel').addEventListener('click', () => {
     editingBookingId = null;
-    document.getElementById('booking-form').reset();
-    document.getElementById('booking-form-title').textContent = 'Neue Buchung';
-    document.getElementById('booking-id').value = '';
-    document.getElementById('booking-date').value = new Date().toISOString().slice(0, 10);
+    $('booking-form').reset();
+    $('booking-id').value = '';
+    $('booking-form-title').textContent = 'Neue Buchung';
+    renderBookingForm();
   });
-  document.getElementById('inventory-item-cancel').addEventListener('click', () => {
+  $('inventory-item-cancel').addEventListener('click', () => {
     editingItemId = null;
-    document.getElementById('inventory-item-form').reset();
-    document.getElementById('inventory-item-id').value = '';
+    $('inventory-item-form').reset();
+    $('inventory-item-id').value = '';
   });
-
   document.addEventListener('click', (event) => {
-    const target = event.target;
-    if (target.matches('[data-select-booking]')) handleSelectBooking(target.dataset.selectBooking);
-    if (target.matches('[data-delete-booking]')) handleDeleteBooking(target.dataset.deleteBooking);
-    if (target.matches('[data-edit-booking]')) handleEditBooking(target.dataset.editBooking);
-    if (target.matches('[data-duplicate-booking]')) handleDuplicateBooking(target.dataset.duplicateBooking);
-    if (target.matches('[data-select-account]')) handleSelectAccount(target.dataset.selectAccount);
-    if (target.matches('[data-delete-account]')) handleDeleteAccount(target.dataset.deleteAccount);
-    if (target.matches('[data-edit-item]')) handleEditItem(target.dataset.editItem);
-    if (target.matches('[data-adjust-item]')) handleAdjustItem(target.dataset.adjustItem);
-    if (target.matches('[data-delete-item]')) handleDeleteItem(target.dataset.deleteItem);
-    if (target.matches('[data-delete-movement]')) handleDeleteMovement(target.dataset.deleteMovement);
+    const target = event.target.closest('button');
+    if (!target) return;
+    if (target.dataset.selectBooking) {
+      state.settings = { ...state.settings, selectedBookingId: target.dataset.selectBooking };
+      renderBookingDetails(target.dataset.selectBooking);
+    }
+    if (target.dataset.deleteBooking) handleDeleteBooking(target.dataset.deleteBooking);
+    if (target.dataset.editBooking) handleEditBooking(target.dataset.editBooking);
+    if (target.dataset.duplicateBooking) handleDuplicateBooking(target.dataset.duplicateBooking);
+    if (target.dataset.selectAccount) {
+      state.settings = { ...state.settings, selectedAccountId: target.dataset.selectAccount };
+      renderAccountDetails(target.dataset.selectAccount);
+    }
+    if (target.dataset.deleteAccount) handleDeleteAccount(target.dataset.deleteAccount);
+    if (target.dataset.editItem) handleEditItem(target.dataset.editItem);
+    if (target.dataset.adjustItem) handleAdjustItem(target.dataset.adjustItem);
+    if (target.dataset.deleteItem) handleDeleteItem(target.dataset.deleteItem);
+    if (target.dataset.deleteMovement) handleDeleteMovement(target.dataset.deleteMovement);
   });
-
-  document.getElementById('booking-amount').addEventListener('input', updateTaxSummary);
-  document.getElementById('booking-tax-mode').addEventListener('change', updateTaxSummary);
-  document.getElementById('booking-tax-type').addEventListener('change', updateTaxSummary);
-  document.getElementById('movement-item').addEventListener('change', updateMovementStockInfo);
-
-  document.getElementById('export-json').addEventListener('click', exportJson);
-  document.getElementById('export-bookings-csv').addEventListener('click', () => exportCsv('bookings'));
-  document.getElementById('export-inventory-csv').addEventListener('click', () => exportCsv('inventory'));
-  document.getElementById('import-json').addEventListener('change', handleImport);
-  document.getElementById('reset-data').addEventListener('click', resetData);
-  document.getElementById('load-sample-data').addEventListener('click', loadSampleData);
+  ['booking-amount', 'booking-tax-mode', 'booking-tax-type'].forEach((id) => $(id).addEventListener('input', updateTaxSummary));
+  $('movement-item').addEventListener('change', updateMovementStockInfo);
+  $('export-json').addEventListener('click', exportJson);
+  $('export-bookings-csv').addEventListener('click', () => exportCsv('bookings'));
+  $('export-inventory-csv').addEventListener('click', () => exportCsv('inventory'));
+  $('import-json').addEventListener('change', handleImport);
+  $('reset-data').addEventListener('click', resetData);
+  $('load-sample-data').addEventListener('click', loadSampleData);
 }
 
 async function init() {
-  state = await loadState();
-  ensureDataNumbers();
-  recalculateAll();
+  state = recalculate(await localStorageAdapter.load());
   wireEvents();
   render();
   syncViewFromHash();
+  setStatus(state.settings.lastSavedAt ? `Im Browser gespeichert · ${formatDateTime(state.settings.lastSavedAt)}` : 'Seed-Daten geladen');
 }
 
 init();
