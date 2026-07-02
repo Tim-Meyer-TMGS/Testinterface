@@ -1,0 +1,283 @@
+:root {
+  color-scheme: light;
+  --bg: #f3f5f8;
+  --panel: #ffffff;
+  --panel-alt: #f7f9fb;
+  --text: #21313f;
+  --muted: #65748b;
+  --border: #dce4ec;
+  --accent: #2f6fed;
+  --accent-soft: #e7efff;
+  --danger: #c94f4f;
+  --success: #2e8b57;
+  --shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  border: 1px solid var(--border);
+  background: var(--accent);
+  color: white;
+  padding: 0.7rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: var(--panel-alt);
+  color: var(--text);
+}
+
+button.danger {
+  background: var(--danger);
+}
+
+button:hover {
+  filter: brightness(0.97);
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: #0f172a;
+  color: white;
+  padding: 1.5rem 1rem;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.brand p {
+  margin: 0.35rem 0 1.25rem;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.nav-button {
+  background: transparent;
+  border: 0;
+  color: #e2e8f0;
+  text-align: left;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.55rem;
+}
+
+.nav-button.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: white;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.eyebrow {
+  margin: 0 0 0.25rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.topbar h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.main-content {
+  padding: 1.5rem;
+}
+
+.view {
+  display: none;
+}
+
+.view.active {
+  display: block;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  padding: 1rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+
+.card h3 {
+  margin-top: 0;
+  margin-bottom: 0.8rem;
+}
+
+.stat-card {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.stat-card .label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.stat-card .value {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 0.35rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(200px, 1fr));
+  gap: 0.9rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+label.full-width,
+.form-actions.full-width {
+  grid-column: 1 / -1;
+}
+
+input,
+select {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.7rem 0.8rem;
+  background: white;
+  color: var(--text);
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.75rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.action-stack {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.file-input {
+  border: 1px dashed var(--border);
+  border-radius: 0.6rem;
+  padding: 0.9rem;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.file-input input {
+  display: block;
+  margin-top: 0.4rem;
+}
+
+.tax-summary {
+  padding: 0.8rem;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  color: var(--muted);
+  min-height: 48px;
+}
+
+.small {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
