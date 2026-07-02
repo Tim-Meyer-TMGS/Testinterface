@@ -15,11 +15,21 @@
 6. Einmal `Einstellungen > Daten zurücksetzen` ausführen, falls im Browser noch alte LocalStorage-Daten liegen.
 
 ## Seed-Daten-Prüfung
-- Das Beispiel enthält 27 Vorgänge über Juni und Juli 2026.
+- Das Beispiel enthält 27 Vorgänge über Mai und Juni 2026.
 - Erwartete Bereiche: Behandlungserlöse, KZV-Zahlungen, Privatforderungen, Prophylaxeverkäufe, Materialeinkäufe, Miete, Labor und Software.
 - Lagerbestände dürfen nach Seed-Import nicht negativ sein.
 
 ## Manuelle Akzeptanztests
+
+### Detail-Modals
+1. Im Dashboard einen Eintrag unter `Letzte Vorgänge` anklicken.
+2. Das Detail-Modal öffnet sich, ohne die Dashboard-Ansicht zu verlassen.
+3. Im Modal ein verknüpftes Ziel- oder Gegenkonto öffnen.
+4. Mit `Escape` schließen.
+5. Im Journal einen Vorgang anklicken.
+6. Aus dem Vorgang einen verknüpften Artikel oder eine Materialbewegung öffnen.
+7. Im Lager eine Materialbewegung anklicken und die verknüpfte Buchung öffnen.
+8. Klick auf den Hintergrund schließt das Modal.
 
 ### Verkauf mit Umsatzsteuer
 1. Vorgang erstellen: Kasse an Verkauf Prophylaxeartikel, 119 EUR brutto, 19 % Umsatzsteuer.

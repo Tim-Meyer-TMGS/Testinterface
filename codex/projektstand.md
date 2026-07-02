@@ -6,7 +6,7 @@
 - Zielgruppe: Einsteiger ohne Buchführungsvorwissen, die typische Praxisvorgänge schrittweise nachvollziehen und üben wollen.
 - Plattform: Statische Web-App für GitHub Pages; keine Backend-Pflicht.
 - Speicher: Standardmäßig `localStorage` im Browser, zusätzlich JSON-Export und JSON-Import.
-- Beispieldaten: Rund zwei Monate Zahnarztpraxisbetrieb mit Behandlungshonoraren, KZV-Abschlägen, Privatforderungen, Prophylaxeverkäufen, Materialeinkäufen, Labor, Miete und Praxissoftware.
+- Beispieldaten: Rund zwei Monate Zahnarztpraxisbetrieb im Mai/Juni 2026 mit Behandlungshonoraren, KZV-Abschlägen, Privatforderungen, Prophylaxeverkäufen, Materialeinkäufen, Labor, Miete und Praxissoftware.
 - Fachlicher Rahmen: Praxisnaher Übungskontenplan mit sichtbaren Buchführungsbegriffen, aber einsteigerfreundlichen Bezeichnungen wie Zielkonto, Gegenkonto, Einnahme, Ausgabe und offene Rechnung.
 - Lager: Praxislager für Hygiene-, Behandlungs- und Prophylaxeartikel mit Material rein/raus, Bestandsprüfung und Nachbestellhinweisen.
 - Import/Export: JSON für vollständige Datensicherung, CSV für Journal und Lagerbestand.
@@ -18,6 +18,7 @@
 - Buchungen: Erfassung, Bearbeitung, Duplizierung und Löschung von Praxisvorgängen inklusive Steuer- und Lagerwirkung.
 - Zahlungen: Schnellerfassung von Einzahlungen, Abbuchungen und Umbuchungen.
 - Lager: Artikelverwaltung, Lagerbewegungen, Bestandskorrekturen, Verbrauch und Nachbestellung.
+- Globale Details: Buchungen, Bereiche, Zahlungen, Artikel und Materialbewegungen öffnen eine zentrale Detailansicht als Modal, ohne die Hauptansicht zu verlassen.
 - Export / Import: JSON- und CSV-Ausgabe sowie JSON-Wiederherstellung.
 - Einstellungen: Daten zurücksetzen und Beispieldaten neu laden.
 
@@ -41,10 +42,12 @@
 
 ## Umgesetzte Sanierung
 - SKR03-nahe Seed-Konten mit eindeutigen Kontonummern angelegt und auf Zahnarztpraxisbetrieb erweitert.
-- Beispieldaten bilden rund zwei Monate Praxisbetrieb ab: Behandlungshonorare, KZV-Abschläge, Privatforderungen, Prophylaxeverkäufe, Materialeinkäufe, Labor, Miete und Praxissoftware.
+- Beispieldaten bilden rund zwei Monate Praxisbetrieb im Mai/Juni 2026 ab: Behandlungshonorare, KZV-Abschläge, Privatforderungen, Prophylaxeverkäufe, Materialeinkäufe, Labor, Miete und Praxissoftware.
+- Die Seed-Daten enthalten keine Beispielbuchungen aus der Zukunft; spätester Beispielvorgang ist der 30.06.2026.
 - Das Design ist freundlicher und thematisch auf Zahnarztpraxis, Hygiene und Praxislager ausgerichtet.
 - Die Oberfläche wurde für Anfänger vereinfacht: Vorgänge statt abstrakter Buchungen, Zielkonto/Gegenkonto statt isoliertem Soll/Haben, Material rein/raus statt Wareneingang/Lagerabgang.
 - Das Dashboard wurde als Startansicht aufgeräumt und zeigt einen vereinfachten Gesamt-Saldo: Kasse + Bank + offene Patientenrechnungen + Materialwert minus offene Lieferantenrechnungen.
+- Globale Detailansichten wurden als ein zentrales Modal umgesetzt; verknüpfte Datensätze können innerhalb des Modals weiter geöffnet werden.
 - Steuerberechnung für netto/brutto sowie Umsatzsteuer/Vorsteuer in Kernlogik ausgelagert.
 - Buchungssalden werden aus Buchungszeilen abgeleitet, nicht mehr nur aus einem Betrag.
 - Lagerwirkung bei Vorgängen ist explizit: kein Lager, Material kommt rein oder Material geht raus.
