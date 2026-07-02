@@ -1,5 +1,5 @@
 export const STORAGE_KEY = 'buchhaltungs-uebung-data-v2';
-export const DATA_FILE_URL = './data/app-data.json';
+export const DATA_FILE_URL = `${import.meta.env.BASE_URL}data/app-data.json`;
 
 export const ACCOUNT_IDS = {
   cash: 'account-cash',
