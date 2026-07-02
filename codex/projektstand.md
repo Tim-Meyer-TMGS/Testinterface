@@ -2,22 +2,21 @@
 
 ## Status
 - Grundgerüst der Anwendung ist vorhanden.
-- Dashboard, Konten, Buchungen, Zahlungen, Lager und Export/Import sind umgesetzt.
-- Daten werden lokal im Browser über localStorage gespeichert.
+- Dashboard, Konten, Buchungen, Zahlungen, Lager, Export/Import und Detailansichten sind umgesetzt.
+- Daten werden lokal im Browser über localStorage gespeichert und können per JSON exportiert/importiert werden.
 
 ## Aktueller Stand
-- HTML-, CSS- und JavaScript-Struktur sind angelegt.
-- Buchungen und Kontensalden werden berechnet.
-- Lagerartikel und einfache Lagerbewegungen sind vorhanden.
-- Steuerberechnung wird als sichtbare Zusatzinformation gespeichert.
-- Lagerabgänge werden nun vor dem Speichern auf verfügbaren Bestand geprüft.
-- Die Navigation bleibt als Single-Page-Ansicht aufgebaut, nutzt aber jetzt eine hash-basierte Seitenlogik, damit sie sich seitenähnlich anfühlt.
-- Ein speicherbarer Fortschrittsbereich wurde ergänzt, damit abgeschlossene Übungsschritte im Browser erhalten bleiben.
+- HTML-, CSS- und JavaScript-Struktur sind angelegt und weiter ausgebaut.
+- Buchungen, Kontensalden und Lagerwerte werden berechnet.
+- Lagerartikel, Lagerbewegungen, Bestandskorrekturen und automatische Lagerzugänge bei Buchungen sind umgesetzt.
+- Artikelübersichten, Bestandsübersichten, Konten-Detailansichten und Beleg-Detailansichten sind ergänzt.
+- Konten werden mit Kontonummern dargestellt, Buchungen mit Belegnummern und Detailansichten.
+- Steuerberechnung wird als sichtbare Zusatzinformation dargestellt.
+- Lagerabgänge werden vor dem Speichern auf verfügbaren Bestand geprüft.
+- Die Navigation bleibt als Single-Page-Ansicht aufgebaut und nutzt eine hash-basierte Seitenlogik.
 
 ## Offene Punkte
-- UI weiter verfeinern.
-- Buchungsbearbeitung und Duplizieren robusten Abschluss geben.
-- Lagerbestand und Bewegungen prüfen.
-- Steuerlogik erweitern.
-- Export/Import testen.
-- Responsive Layout verbessern.
+- Steuerlogik weiter ausbauen.
+- Export/Import praxisnah testen.
+- Responsive Layout und UX weiter verfeinern.
+- Daten-Share bzw. Browser-übergreifende Speicherung für GitHub Pages prüfen.

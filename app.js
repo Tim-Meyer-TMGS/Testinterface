@@ -43,6 +43,34 @@ function generateId(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function generateNextAccountNumber() {
+  const numericValues = state.accounts
+    .map((account) => Number(String(account.accountNo || '').trim()))
+    .filter((value) => Number.isFinite(value));
+  const nextValue = numericValues.length ? Math.max(...numericValues) + 10 : 1000;
+  return String(nextValue);
+}
+
+function generateBookingNumber() {
+  const numericValues = state.bookings
+    .map((booking) => Number(String(booking.documentNo || '').match(/(\d+)$/)?.[1]))
+    .filter((value) => Number.isFinite(value));
+  const nextValue = numericValues.length ? Math.max(...numericValues) + 1 : 1000;
+  return `BE-${nextValue}`;
+}
+
+function ensureDataNumbers() {
+  state.accounts = state.accounts.map((account) => ({
+    ...account,
+    accountNo: String(account.accountNo || '').trim() || generateNextAccountNumber()
+  }));
+
+  state.bookings = state.bookings.map((booking) => ({
+    ...booking,
+    documentNo: String(booking.documentNo || '').trim() || generateBookingNumber()
+  }));
+}
+
 function normalizeState(parsed) {
   return {
     schemaVersion: parsed?.schemaVersion || 1,
@@ -63,21 +91,11 @@ function normalizeState(parsed) {
   };
 }
 
-async function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      return normalizeState(JSON.parse(raw));
-    }
-  } catch (error) {
-    console.error('Fehler beim Laden aus localStorage', error);
-  }
-
+async function loadSeedState() {
   try {
     const response = await fetch(DATA_FILE_URL, { cache: 'no-store' });
     if (response.ok) {
-      const parsed = await response.json();
-      return normalizeState(parsed);
+      return normalizeState(await response.json());
     }
   } catch (error) {
     console.error('Fehler beim Laden aus der statischen JSON-Datei', error);
@@ -86,112 +104,32 @@ async function loadState() {
   return createInitialState();
 }
 
+async function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = normalizeState(JSON.parse(raw));
+      state = parsed;
+      ensureDataNumbers();
+      return state;
+    }
+  } catch (error) {
+    console.error('Fehler beim Laden aus localStorage', error);
+  }
+
+  const parsed = await loadSeedState();
+  state = parsed;
+  ensureDataNumbers();
+  return state;
+}
+
 function createInitialState() {
-  const accounts = [
-    { id: 'account-cash', accountNo: '1000', name: 'Kasse', type: 'asset', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-bank', accountNo: '1200', name: 'Bank', type: 'asset', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-receivables', accountNo: '1400', name: 'Forderungen', type: 'asset', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-payables', accountNo: '2000', name: 'Verbindlichkeiten', type: 'liability', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-purchases', accountNo: '4000', name: 'Wareneinkauf', type: 'expense', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-sales', accountNo: '5000', name: 'Warenverkauf', type: 'revenue', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-inventory', accountNo: '3000', name: 'Lagerbestand', type: 'asset', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-revenue', accountNo: '8000', name: 'Erlöse', type: 'revenue', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-expenses', accountNo: '6000', name: 'Aufwendungen', type: 'expense', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-vat', accountNo: '2600', name: 'Umsatzsteuer', type: 'tax', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-input-vat', accountNo: '2500', name: 'Vorsteuer', type: 'tax', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-equity', accountNo: '3000', name: 'Eigenkapital', type: 'liability', debitTotal: 0, creditTotal: 0, balance: 0 }
-  ];
-
-  const inventoryItems = [
-    { id: 'item-1', sku: 'ART-001', name: 'Betriebsbedarf', category: 'Material', unit: 'Stk', openingStock: 10, purchasePriceNet: 8, salePriceNet: 12 },
-    { id: 'item-2', sku: 'ART-002', name: 'Desinfektionsmittel', category: 'Material', unit: 'Flasche', openingStock: 5, purchasePriceNet: 4.5, salePriceNet: 7.5 }
-  ];
-
-  const bookings = [
-    {
-      id: 'booking-demo-1',
-      date: '2026-06-01',
-      documentNo: 'BE-1001',
-      description: 'Eröffnungskonto',
-      debitAccountId: 'account-cash',
-      creditAccountId: 'account-equity',
-      amount: 5000,
-      taxType: 'none',
-      taxMode: 'net',
-      netAmount: 5000,
-      taxAmount: 0,
-      grossAmount: 5000,
-      inventoryItemId: null,
-      quantity: null,
-      createdAt: '2026-06-01T09:00:00.000Z'
-    },
-    {
-      id: 'booking-demo-2',
-      date: '2026-06-03',
-      documentNo: 'BE-1002',
-      description: 'Umsatzerlös',
-      debitAccountId: 'account-bank',
-      creditAccountId: 'account-revenue',
-      amount: 1200,
-      taxType: 'vat19',
-      taxMode: 'net',
-      netAmount: 1008.4,
-      taxAmount: 191.6,
-      grossAmount: 1200,
-      inventoryItemId: null,
-      quantity: null,
-      createdAt: '2026-06-03T10:30:00.000Z'
-    },
-    {
-      id: 'booking-demo-3',
-      date: '2026-06-05',
-      documentNo: 'BE-1003',
-      description: 'Wareneinkauf',
-      debitAccountId: 'account-purchases',
-      creditAccountId: 'account-payables',
-      amount: 640,
-      taxType: 'input19',
-      taxMode: 'net',
-      netAmount: 537.82,
-      taxAmount: 102.18,
-      grossAmount: 640,
-      inventoryItemId: 'item-1',
-      quantity: 8,
-      createdAt: '2026-06-05T13:00:00.000Z'
-    }
-  ];
-
-  const inventoryMovements = [
-    {
-      id: 'movement-demo-1',
-      date: '2026-06-05',
-      itemId: 'item-1',
-      type: 'in',
-      quantity: 8,
-      unitValueNet: 8,
-      description: 'Wareneingang',
-      documentNo: 'LG-1001',
-      linkedBookingId: 'booking-demo-3'
-    },
-    {
-      id: 'movement-demo-2',
-      date: '2026-06-08',
-      itemId: 'item-1',
-      type: 'out',
-      quantity: 3,
-      unitValueNet: 8,
-      description: 'Lagerabgang',
-      documentNo: 'LG-1002',
-      linkedBookingId: null
-    }
-  ];
-
   return {
     schemaVersion: 1,
-    accounts,
-    bookings,
-    inventoryItems,
-    inventoryMovements,
+    accounts: [],
+    bookings: [],
+    inventoryItems: [],
+    inventoryMovements: [],
     progress: { completedSteps: [], lastUpdated: null },
     settings: { exportedAt: null, createdAt: new Date().toISOString(), lastSavedAt: null }
   };
@@ -688,6 +626,24 @@ function validateMovement(formData) {
   return null;
 }
 
+function inferInventoryMovementTypeForBooking(booking) {
+  const debitAccountId = booking.debitAccountId;
+  const creditAccountId = booking.creditAccountId;
+
+  const purchaseLikeAccounts = ['account-purchases', 'account-expenses', 'account-input-vat'];
+  const salesLikeAccounts = ['account-sales', 'account-revenue'];
+
+  if (purchaseLikeAccounts.includes(debitAccountId) || purchaseLikeAccounts.includes(creditAccountId) || creditAccountId === 'account-payables') {
+    return 'in';
+  }
+
+  if (salesLikeAccounts.includes(debitAccountId) || salesLikeAccounts.includes(creditAccountId) || debitAccountId === 'account-bank' || debitAccountId === 'account-cash') {
+    return 'out';
+  }
+
+  return null;
+}
+
 function createInventoryMovementFromBooking(booking) {
   if (!booking.inventoryItemId || !booking.quantity || Number(booking.quantity) <= 0) {
     return null;
@@ -695,6 +651,11 @@ function createInventoryMovementFromBooking(booking) {
 
   const item = state.inventoryItems.find((entry) => entry.id === booking.inventoryItemId);
   if (!item) {
+    return null;
+  }
+
+  const movementType = inferInventoryMovementTypeForBooking(booking);
+  if (!movementType) {
     return null;
   }
 
@@ -706,10 +667,10 @@ function createInventoryMovementFromBooking(booking) {
     id: generateId('movement'),
     date: booking.date,
     itemId: booking.inventoryItemId,
-    type: 'in',
+    type: movementType,
     quantity: Number(booking.quantity),
     unitValueNet,
-    description: booking.description || 'Lagerzugang',
+    description: movementType === 'out' ? 'Lagerabgang' : 'Wareneingang',
     documentNo: booking.documentNo || '',
     linkedBookingId: booking.id
   };
@@ -737,7 +698,7 @@ function buildBookingFromForm(formData, bookingId = null) {
   return {
     id: bookingId || generateId('booking'),
     date: formData.get('bookingDate'),
-    documentNo: formData.get('bookingDocument'),
+    documentNo: String(formData.get('bookingDocument') || '').trim() || generateBookingNumber(),
     description: formData.get('bookingDescription'),
     debitAccountId: formData.get('bookingDebit'),
     creditAccountId: formData.get('bookingCredit'),
@@ -820,8 +781,10 @@ function handleAccountSubmit(event) {
     alert('Bitte einen Kontonamen eingeben.');
     return;
   }
+  const accountNo = String(formData.get('accountNo') || '').trim() || generateNextAccountNumber();
   state.accounts.push({
     id: generateId('account'),
+    accountNo,
     name,
     type: formData.get('accountType') || 'asset',
     debitTotal: 0,
@@ -890,7 +853,7 @@ function handlePaymentSubmit(event) {
   const booking = {
     id: generateId('booking'),
     date: formData.get('paymentDate'),
-    documentNo: formData.get('paymentDocument'),
+    documentNo: String(formData.get('paymentDocument') || '').trim() || generateBookingNumber(),
     description: `Zahlung: ${description}`,
     debitAccountId: type === 'deposit' ? accountId : type === 'withdrawal' ? counterAccountId : 'account-bank',
     creditAccountId: type === 'deposit' ? counterAccountId : type === 'withdrawal' ? accountId : 'account-cash',
@@ -950,7 +913,12 @@ function handleEditBooking(id) {
 function handleDuplicateBooking(id) {
   const booking = state.bookings.find((entry) => entry.id === id);
   if (!booking) return;
-  const duplicate = { ...booking, id: generateId('booking'), createdAt: new Date().toISOString() };
+  const duplicate = {
+    ...booking,
+    id: generateId('booking'),
+    documentNo: generateBookingNumber(),
+    createdAt: new Date().toISOString()
+  };
   state.bookings.push(duplicate);
   render();
 }
@@ -1030,35 +998,23 @@ function updateTaxSummary() {
   document.getElementById('booking-tax-summary').textContent = `Netto: ${formatCurrency(result.netAmount)} | Steuer: ${formatCurrency(result.taxAmount)} | Brutto: ${formatCurrency(result.grossAmount)}`;
 }
 
-function resetData() {
+async function resetData() {
   if (!confirm('Alle Daten wirklich löschen?')) return;
   localStorage.removeItem(STORAGE_KEY);
-  state = createInitialState();
+  const parsed = await loadSeedState();
+  state = parsed;
+  ensureDataNumbers();
+  recalculateAll();
+  saveState();
   render();
 }
 
-function loadSampleData() {
-  state = createInitialState();
-  state.bookings = [
-    {
-      id: generateId('booking'),
-      date: '2026-01-03',
-      documentNo: 'BE-001',
-      description: 'Eröffnungskonto',
-      debitAccountId: 'account-cash',
-      creditAccountId: 'account-equity',
-      amount: 5000,
-      taxType: 'none',
-      taxMode: 'net',
-      netAmount: 5000,
-      taxAmount: 0,
-      grossAmount: 5000,
-      inventoryItemId: null,
-      quantity: null,
-      createdAt: new Date().toISOString()
-    }
-  ];
-  state.inventoryMovements = [];
+async function loadSampleData() {
+  const parsed = await loadSeedState();
+  state = parsed;
+  ensureDataNumbers();
+  recalculateAll();
+  saveState();
   render();
 }
 
@@ -1178,6 +1134,7 @@ function wireEvents() {
 
 async function init() {
   state = await loadState();
+  ensureDataNumbers();
   recalculateAll();
   wireEvents();
   render();
