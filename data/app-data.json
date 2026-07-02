@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": "2026-07-02T00:00:00.000Z",
+  "accounts": [
+    { "id": "account-cash", "accountNo": "1000", "name": "Kasse", "type": "asset", "debitTotal": 0, "creditTotal": 0, "balance": 0 },
+    { "id": "account-bank", "accountNo": "1200", "name": "Bank", "type": "asset", "debitTotal": 0, "creditTotal": 0, "balance": 0 },
+    { "id": "account-receivables", "accountNo": "1400", "name": "Forderungen", "type": "asset", "debitTotal": 0, "creditTotal": 0, "balance": 0 },
+    { "id": "account-payables", "accountNo": "2000", "name": "Verbindlichkeiten", "type": "liability", "debitTotal": 0, "creditTotal": 0, "balance": 0 },
+    { "id": "account-purchases", "accountNo": "4000", "name": "Wareneinkauf", "type": "expense", "debitTotal": 0, "creditTotal": 0, "balance": 0 },
+    { "id": "account-sales", "accountNo": "5000", "name": "Warenverkauf", "type": "revenue", "debitTotal": 0, "creditTotal": 0, "balance": 0 },
+    { "id": "account-inventory", "accountNo": "3000", "name": "Lagerbestand", "type": "asset", "debitTotal": 0, "creditTotal": 0, "balance": 0 },
+    { "id": "account-revenue", "accountNo": "8000", "name": "Erlöse", "type": "revenue", "debitTotal": 0, "creditTotal": 0, "balance": 0 },
+    { "id": "account-expenses", "accountNo": "6000", "name": "Aufwendungen", "type": "expense", "debitTotal": 0, "creditTotal": 0, "balance": 0 },
+    { "id": "account-vat", "accountNo": "2600", "name": "Umsatzsteuer", "type": "tax", "debitTotal": 0, "creditTotal": 0, "balance": 0 },
+    { "id": "account-input-vat", "accountNo": "2500", "name": "Vorsteuer", "type": "tax", "debitTotal": 0, "creditTotal": 0, "balance": 0 },
+    { "id": "account-equity", "accountNo": "3000", "name": "Eigenkapital", "type": "liability", "debitTotal": 0, "creditTotal": 0, "balance": 0 }
+  ],
+  "bookings": [
+    {
+      "id": "booking-demo-1",
+      "date": "2026-06-01",
+      "documentNo": "BE-1001",
+      "description": "Eröffnungskonto",
+      "debitAccountId": "account-cash",
+      "creditAccountId": "account-equity",
+      "amount": 5000,
+      "taxType": "none",
+      "taxMode": "net",
+      "netAmount": 5000,
+      "taxAmount": 0,
+      "grossAmount": 5000,
+      "inventoryItemId": null,
+      "quantity": null,
+      "createdAt": "2026-06-01T09:00:00.000Z"
+    },
+    {
+      "id": "booking-demo-2",
+      "date": "2026-06-03",
+      "documentNo": "BE-1002",
+      "description": "Umsatzerlös",
+      "debitAccountId": "account-bank",
+      "creditAccountId": "account-revenue",
+      "amount": 1200,
+      "taxType": "vat19",
+      "taxMode": "net",
+      "netAmount": 1008.4,
+      "taxAmount": 191.6,
+      "grossAmount": 1200,
+      "inventoryItemId": null,
+      "quantity": null,
+      "createdAt": "2026-06-03T10:30:00.000Z"
+    }
+  ],
+  "inventoryItems": [
+    { "id": "item-1", "sku": "ART-001", "name": "Betriebsbedarf", "category": "Material", "unit": "Stk", "openingStock": 10, "purchasePriceNet": 8, "salePriceNet": 12 },
+    { "id": "item-2", "sku": "ART-002", "name": "Desinfektionsmittel", "category": "Material", "unit": "Flasche", "openingStock": 5, "purchasePriceNet": 4.5, "salePriceNet": 7.5 }
+  ],
+  "inventoryMovements": [
+    { "id": "movement-demo-1", "date": "2026-06-05", "itemId": "item-1", "type": "in", "quantity": 8, "unitValueNet": 8, "description": "Wareneingang", "documentNo": "LG-1001", "linkedBookingId": "booking-demo-3" },
+    { "id": "movement-demo-2", "date": "2026-06-08", "itemId": "item-1", "type": "out", "quantity": 3, "unitValueNet": 8, "description": "Lagerabgang", "documentNo": "LG-1002", "linkedBookingId": null }
+  ],
+  "progress": { "completedSteps": [], "lastUpdated": null },
+  "settings": { "exportedAt": null, "createdAt": "2026-07-02T00:00:00.000Z", "lastSavedAt": null }
+}

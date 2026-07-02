@@ -295,9 +295,90 @@ th {
 
   .sidebar {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem;
+  }
+
+  .nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .nav-button {
+    flex: 1 1 calc(50% - 0.4rem);
+    text-align: center;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .main-content {
+    padding: 1rem;
   }
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 15px;
+  }
+
+  .sidebar {
+    padding: 0.85rem;
+  }
+
+  .brand h1 {
+    font-size: 1rem;
+  }
+
+  .nav-button {
+    flex: 1 1 100%;
+    padding: 0.7rem;
+  }
+
+  .topbar {
+    padding: 1rem;
+  }
+
+  .main-content {
+    padding: 0.8rem;
+  }
+
+  .card {
+    padding: 0.85rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  button {
+    width: 100%;
+  }
+
+  th,
+  td {
+    padding: 0.6rem 0.45rem;
+    font-size: 0.9rem;
+  }
+
+  .table-wrapper {
+    margin: 0 -0.2rem;
   }
 }

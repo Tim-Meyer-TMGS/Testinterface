@@ -1,5 +1,7 @@
 const STORAGE_KEY = 'buchhaltungs-uebung-data-v1';
+const DATA_FILE_URL = './data/app-data.json';
 const DEFAULT_STATE = {
+  schemaVersion: 1,
   accounts: [],
   bookings: [],
   inventoryItems: [],
@@ -8,7 +10,7 @@ const DEFAULT_STATE = {
   settings: { exportedAt: null, createdAt: null, lastSavedAt: null }
 };
 
-let state = loadState();
+let state = createInitialState();
 let currentView = 'dashboard';
 let editingBookingId = null;
 let editingItemId = null;
@@ -17,49 +19,63 @@ function generateId(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function loadState() {
+function normalizeState(parsed) {
+  return {
+    schemaVersion: parsed?.schemaVersion || 1,
+    accounts: Array.isArray(parsed?.accounts) ? parsed.accounts : [],
+    bookings: Array.isArray(parsed?.bookings) ? parsed.bookings : [],
+    inventoryItems: Array.isArray(parsed?.inventoryItems) ? parsed.inventoryItems : [],
+    inventoryMovements: Array.isArray(parsed?.inventoryMovements) ? parsed.inventoryMovements : [],
+    progress: parsed?.progress && typeof parsed.progress === 'object'
+      ? { completedSteps: Array.isArray(parsed.progress.completedSteps) ? parsed.progress.completedSteps : [], lastUpdated: parsed.progress.lastUpdated || null }
+      : { completedSteps: [], lastUpdated: null },
+    settings: parsed?.settings && typeof parsed.settings === 'object'
+      ? {
+          exportedAt: parsed.settings.exportedAt || null,
+          createdAt: parsed.settings.createdAt || null,
+          lastSavedAt: parsed.settings.lastSavedAt || null
+        }
+      : { exportedAt: null, createdAt: null, lastSavedAt: null }
+  };
+}
+
+async function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return createInitialState();
+    if (raw) {
+      return normalizeState(JSON.parse(raw));
     }
-    const parsed = JSON.parse(raw);
-    return {
-      accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [],
-      bookings: Array.isArray(parsed.bookings) ? parsed.bookings : [],
-      inventoryItems: Array.isArray(parsed.inventoryItems) ? parsed.inventoryItems : [],
-      inventoryMovements: Array.isArray(parsed.inventoryMovements) ? parsed.inventoryMovements : [],
-      progress: parsed.progress && typeof parsed.progress === 'object'
-        ? { completedSteps: Array.isArray(parsed.progress.completedSteps) ? parsed.progress.completedSteps : [], lastUpdated: parsed.progress.lastUpdated || null }
-        : { completedSteps: [], lastUpdated: null },
-      settings: parsed.settings && typeof parsed.settings === 'object'
-        ? {
-            exportedAt: parsed.settings.exportedAt || null,
-            createdAt: parsed.settings.createdAt || null,
-            lastSavedAt: parsed.settings.lastSavedAt || null
-          }
-        : { exportedAt: null, createdAt: null, lastSavedAt: null }
-    };
   } catch (error) {
-    console.error('Fehler beim Laden', error);
-    return createInitialState();
+    console.error('Fehler beim Laden aus localStorage', error);
   }
+
+  try {
+    const response = await fetch(DATA_FILE_URL, { cache: 'no-store' });
+    if (response.ok) {
+      const parsed = await response.json();
+      return normalizeState(parsed);
+    }
+  } catch (error) {
+    console.error('Fehler beim Laden aus der statischen JSON-Datei', error);
+  }
+
+  return createInitialState();
 }
 
 function createInitialState() {
   const accounts = [
-    { id: 'account-cash', name: 'Kasse', type: 'asset', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-bank', name: 'Bank', type: 'asset', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-receivables', name: 'Forderungen', type: 'asset', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-payables', name: 'Verbindlichkeiten', type: 'liability', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-purchases', name: 'Wareneinkauf', type: 'expense', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-sales', name: 'Warenverkauf', type: 'revenue', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-inventory', name: 'Lagerbestand', type: 'asset', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-revenue', name: 'Erlöse', type: 'revenue', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-expenses', name: 'Aufwendungen', type: 'expense', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-vat', name: 'Umsatzsteuer', type: 'tax', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-input-vat', name: 'Vorsteuer', type: 'tax', debitTotal: 0, creditTotal: 0, balance: 0 },
-    { id: 'account-equity', name: 'Eigenkapital', type: 'liability', debitTotal: 0, creditTotal: 0, balance: 0 }
+    { id: 'account-cash', accountNo: '1000', name: 'Kasse', type: 'asset', debitTotal: 0, creditTotal: 0, balance: 0 },
+    { id: 'account-bank', accountNo: '1200', name: 'Bank', type: 'asset', debitTotal: 0, creditTotal: 0, balance: 0 },
+    { id: 'account-receivables', accountNo: '1400', name: 'Forderungen', type: 'asset', debitTotal: 0, creditTotal: 0, balance: 0 },
+    { id: 'account-payables', accountNo: '2000', name: 'Verbindlichkeiten', type: 'liability', debitTotal: 0, creditTotal: 0, balance: 0 },
+    { id: 'account-purchases', accountNo: '4000', name: 'Wareneinkauf', type: 'expense', debitTotal: 0, creditTotal: 0, balance: 0 },
+    { id: 'account-sales', accountNo: '5000', name: 'Warenverkauf', type: 'revenue', debitTotal: 0, creditTotal: 0, balance: 0 },
+    { id: 'account-inventory', accountNo: '3000', name: 'Lagerbestand', type: 'asset', debitTotal: 0, creditTotal: 0, balance: 0 },
+    { id: 'account-revenue', accountNo: '8000', name: 'Erlöse', type: 'revenue', debitTotal: 0, creditTotal: 0, balance: 0 },
+    { id: 'account-expenses', accountNo: '6000', name: 'Aufwendungen', type: 'expense', debitTotal: 0, creditTotal: 0, balance: 0 },
+    { id: 'account-vat', accountNo: '2600', name: 'Umsatzsteuer', type: 'tax', debitTotal: 0, creditTotal: 0, balance: 0 },
+    { id: 'account-input-vat', accountNo: '2500', name: 'Vorsteuer', type: 'tax', debitTotal: 0, creditTotal: 0, balance: 0 },
+    { id: 'account-equity', accountNo: '3000', name: 'Eigenkapital', type: 'liability', debitTotal: 0, creditTotal: 0, balance: 0 }
   ];
 
   const inventoryItems = [
@@ -67,11 +83,89 @@ function createInitialState() {
     { id: 'item-2', sku: 'ART-002', name: 'Desinfektionsmittel', category: 'Material', unit: 'Flasche', openingStock: 5, purchasePriceNet: 4.5, salePriceNet: 7.5 }
   ];
 
-  return {
-    accounts,
-    bookings: [],
+  const bookings = [
+    {
+      id: 'booking-demo-1',
+      date: '2026-06-01',
+      documentNo: 'BE-1001',
+      description: 'Eröffnungskonto',
+      debitAccountId: 'account-cash',
+      creditAccountId: 'account-equity',
+      amount: 5000,
+      taxType: 'none',
+      taxMode: 'net',
+      netAmount: 5000,
+      taxAmount: 0,
+      grossAmount: 5000,
+      inventoryItemId: null,
+      quantity: null,
+      createdAt: '2026-06-01T09:00:00.000Z'
+    },
+    {
+      id: 'booking-demo-2',
+      date: '2026-06-03',
+      documentNo: 'BE-1002',
+      description: 'Umsatzerlös',
+      debitAccountId: 'account-bank',
+      creditAccountId: 'account-revenue',
+      amount: 1200,
+      taxType: 'vat19',
+      taxMode: 'net',
+      netAmount: 1008.4,
+      taxAmount: 191.6,
+      grossAmount: 1200,
+      inventoryItemId: null,
+      quantity: null,
+      createdAt: '2026-06-03T10:30:00.000Z'
+    },
+    {
+      id: 'booking-demo-3',
+      date: '2026-06-05',
+      documentNo: 'BE-1003',
+      description: 'Wareneinkauf',
+      debitAccountId: 'account-purchases',
+      creditAccountId: 'account-payables',
+      amount: 640,
+      taxType: 'input19',
+      taxMode: 'net',
+      netAmount: 537.82,
+      taxAmount: 102.18,
+      grossAmount: 640,
+      inventoryItemId: 'item-1',
+      quantity: 8,
+      createdAt: '2026-06-05T13:00:00.000Z'
+    }
+  ];
+
+  const inventoryMovements = [
+    {
+      id: 'movement-demo-1',
+      date: '2026-06-05',
+      itemId: 'item-1',
+      type: 'in',
+      quantity: 8,
+      unitValueNet: 8,
+      description: 'Wareneingang',
+      documentNo: 'LG-1001',
+      linkedBookingId: 'booking-demo-3'
+    },
+    {
+      id: 'movement-demo-2',
+      date: '2026-06-08',
+      itemId: 'item-1',
+      type: 'out',
+      quantity: 3,
+      unitValueNet: 8,
+      description: 'Lagerabgang',
+      documentNo: 'LG-1002',
+      linkedBookingId: null
+    }
+  ];
+
+  return {    schemaVersion: 1,    accounts,
+    bookings,
     inventoryItems,
-    inventoryMovements: [],
+    inventoryMovements,
     progress: { completedSteps: [], lastUpdated: null },
     settings: { exportedAt: null, createdAt: new Date().toISOString(), lastSavedAt: null }
   };
@@ -87,7 +181,11 @@ function saveState() {
     lastSavedAt: new Date().toISOString()
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  document.getElementById('last-saved').textContent = 'Gespeichert ' + formatDateTime(new Date().toISOString());
+  const timestamp = new Date().toISOString();
+  const status = document.getElementById('last-saved');
+  if (status) {
+    status.textContent = 'Im Browser gespeichert · ' + formatDateTime(timestamp);
+  }
 }
 
 function calculateAccountBalances() {
@@ -194,27 +292,6 @@ function syncViewFromHash() {
   setView(resolvedView, false);
 }
 
-function renderProgress() {
-  const completedSteps = Array.isArray(state.progress?.completedSteps) ? state.progress.completedSteps : [];
-  const progressItems = [
-    { id: 'bookings', label: 'Buchungen erfasst' },
-    { id: 'payments', label: 'Zahlungen erfasst' },
-    { id: 'inventory', label: 'Lagerbewegungen erfasst' },
-    { id: 'tax', label: 'Steuer berechnet' },
-    { id: 'export', label: 'Daten exportiert' }
-  ];
-
-  document.getElementById('progress-list').innerHTML = progressItems.map((item) => `
-    <label class="progress-item">
-      <input type="checkbox" data-progress-step="${item.id}" ${completedSteps.includes(item.id) ? 'checked' : ''} />
-      <span>${item.label}</span>
-    </label>
-  `).join('');
-
-  const count = progressItems.filter((item) => completedSteps.includes(item.id)).length;
-  document.getElementById('progress-summary').textContent = `${count}/${progressItems.length} abgeschlossen`;
-}
-
 function renderDashboard() {
   const accountMap = Object.fromEntries(state.accounts.map((account) => [account.id, account]));
   const cash = accountMap['account-cash']?.balance || 0;
@@ -240,15 +317,35 @@ function renderDashboard() {
     </div>
   `).join('');
 
-  renderProgress();
-
   document.getElementById('dashboard-account-table').innerHTML = state.accounts.map((account) => `
     <tr>
-      <td>${account.name}</td>
+      <td>${account.accountNo || ''} ${account.name}</td>
       <td>${labelForType(account.type)}</td>
       <td>${formatCurrency(account.debitTotal)}</td>
       <td>${formatCurrency(account.creditTotal)}</td>
       <td>${formatCurrency(account.balance)}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('dashboard-booking-history').innerHTML = state.bookings
+    .slice()
+    .sort((a, b) => (a.date < b.date ? 1 : -1))
+    .slice(0, 5)
+    .map((booking) => `
+      <tr>
+        <td>${formatDate(booking.date)}</td>
+        <td>${booking.documentNo || ''}</td>
+        <td>${booking.description}</td>
+        <td class="amount-cell">${formatCurrency(booking.amount)}</td>
+      </tr>
+    `)
+    .join('');
+
+  document.getElementById('dashboard-inventory-summary').innerHTML = state.inventoryItems.map((item) => `
+    <tr>
+      <td>${item.name}</td>
+      <td>${item.currentStock ?? item.openingStock}</td>
+      <td class="amount-cell">${formatCurrency(item.currentValue || 0)}</td>
     </tr>
   `).join('');
 }
@@ -629,15 +726,6 @@ function handlePaymentSubmit(event) {
   render();
 }
 
-function toggleProgressStep(stepId) {
-  const completedSteps = Array.isArray(state.progress?.completedSteps) ? state.progress.completedSteps : [];
-  const updatedSteps = completedSteps.includes(stepId)
-    ? completedSteps.filter((entry) => entry !== stepId)
-    : [...completedSteps, stepId];
-  state.progress = { completedSteps: updatedSteps, lastUpdated: new Date().toISOString() };
-  render();
-}
-
 function handleDeleteBooking(id) {
   state.bookings = state.bookings.filter((booking) => booking.id !== id);
   render();
@@ -748,14 +836,9 @@ function exportJson() {
     exportedAt: new Date().toISOString()
   };
   const exportPayload = {
-    version: 1,
+    schemaVersion: 1,
     exportedAt: new Date().toISOString(),
-    accounts: state.accounts,
-    bookings: state.bookings,
-    inventoryItems: state.inventoryItems,
-    inventoryMovements: state.inventoryMovements,
-    progress: state.progress,
-    settings: state.settings
+    ...state
   };
   const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -799,14 +882,7 @@ function handleImport(event) {
         alert('Die Importdatei ist ungültig.');
         return;
       }
-      state = {
-        accounts: parsed.accounts,
-        bookings: parsed.bookings,
-        inventoryItems: parsed.inventoryItems,
-        inventoryMovements: parsed.inventoryMovements,
-        progress: parsed.progress && typeof parsed.progress === 'object' ? parsed.progress : { completedSteps: [], lastUpdated: null },
-        settings: parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : { exportedAt: null, createdAt: null, lastSavedAt: null }
-      };
+      state = normalizeState(parsed);
       recalculateAll();
       render();
     } catch (error) {
@@ -843,11 +919,6 @@ function wireEvents() {
 
   document.addEventListener('click', (event) => {
     const target = event.target;
-    const progressButton = target.closest('[data-progress-step]');
-    if (progressButton) {
-      toggleProgressStep(progressButton.dataset.progressStep);
-      return;
-    }
     if (target.matches('[data-delete-booking]')) handleDeleteBooking(target.dataset.deleteBooking);
     if (target.matches('[data-edit-booking]')) handleEditBooking(target.dataset.editBooking);
     if (target.matches('[data-duplicate-booking]')) handleDuplicateBooking(target.dataset.duplicateBooking);
@@ -870,8 +941,8 @@ function wireEvents() {
   document.getElementById('load-sample-data').addEventListener('click', loadSampleData);
 }
 
-function init() {
-  state = loadState();
+async function init() {
+  state = await loadState();
   recalculateAll();
   wireEvents();
   render();
