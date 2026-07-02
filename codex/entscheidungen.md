@@ -21,10 +21,13 @@
 
 ## Tooling
 - Das Projekt nutzt ES-Module.
-- Vite dient als Devserver.
+- Vite dient als Devserver und Build-Tool.
+- Die UI wird mit Vue 3 umgesetzt.
+- Es wird kein externes UI-Kit verwendet; Karten, Timelines und Panels werden mit eigenem CSS gestaltet.
+- Pinia und Vue Router werden vorerst nicht eingeführt; ein einfacher Vue-Store und interner View-State reichen für die statische Lern-App.
 - Vitest testet die fachliche Kernlogik.
 - Playwright testet zentrale Browser-Workflows.
 
 ## UI-Sicherheit
 - User- und Importdaten dürfen nicht ungeprüft per `innerHTML` gerendert werden.
-- Dynamische Inhalte werden mit DOM-Knoten und `textContent` aufgebaut.
+- Dynamische Inhalte werden über Vue-Templates und Textbindungen gerendert.

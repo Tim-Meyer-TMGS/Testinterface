@@ -24,9 +24,12 @@
 - Einstellungen: Daten zurücksetzen, Beispieldaten neu laden und globales Änderungsprotokoll einsehen.
 
 ## Architektur
-- `index.html`: Statische Oberfläche und Formular-/Tabellenstruktur.
-- `style.css`: Zahnarztpraxis-Design mit freundlicher Mint-/Teal-Farbwelt.
-- `app.js`: UI- und Event-Schicht; rendert DOM sicher ohne ungeprüftes `innerHTML`.
+- `index.html`: Minimaler Vue-Mount für die statische GitHub-Pages-App.
+- `style.css`: Eigenes Zahnarztpraxis-Design für Karten, Timelines, Panels und Formulare.
+- `src/main.js`: Vue-Einstiegspunkt.
+- `src/App.vue`: Hauptlayout, Navigation, Views, Formulare und tabellenarme Oberfläche.
+- `src/appStore.js`: Vue-State-Schicht mit Laden, Speichern, Commit, Audit, Import und Export.
+- `src/components/DetailModal.vue`: Zentrale Detailansicht für Vorgänge, Bereiche, Zahlungen, Material und Protokoll.
 - `src/accounting.js`: Steuerberechnung, Buchungszeilen und Kontensalden.
 - `src/inventory.js`: Lagerbestände, Bestandsprüfung und Synchronisierung verknüpfter Lagerbewegungen.
 - `src/audit.js`: Hilfslogik für kontobezogene Protokolleinträge und kompakte Vorher/Nachher-Snapshots.
@@ -34,13 +37,15 @@
 - `src/storage.js`: LocalStorage-Adapter und vorbereiteter Server-Adapter.
 - `data/app-data.json`: Seed-Daten für das Praxisbeispiel.
 - `.github/workflows/test.yml`: CI-Tests in GitHub Actions.
+- `.github/workflows/pages.yml`: Baut die Vue-App und veröffentlicht `dist` über GitHub Pages.
 - `vitest.config.js`: grenzt Unit-Tests auf `tests/**/*.test.js` ein, damit Playwright-Specs nicht von Vitest eingesammelt werden.
 
 ## Status
-- Die Anwendung ist zu einer modularen Vanilla-JS-App umgebaut.
+- Die Anwendung ist auf Vue 3 mit Vite migriert.
 - Fachlogik liegt in `src/` und ist ohne DOM testbar.
-- `app.js` ist die UI-/Event-Schicht und speichert nur noch nach Datenänderungen.
+- Die alte Vanilla-UI wird nicht mehr aus `index.html` geladen; die UI läuft über Vue-Komponenten.
 - Die App bleibt statisch lauffähig und nutzt `localStorage` als Standard-Speicher.
+- GitHub Pages muss die per Actions gebaute Vite-Ausgabe aus `dist` veröffentlichen, nicht mehr den Repo-Root.
 
 ## Umgesetzte Sanierung
 - SKR03-nahe Seed-Konten mit eindeutigen Kontonummern angelegt und auf Zahnarztpraxisbetrieb erweitert.
@@ -49,6 +54,8 @@
 - Das Design ist freundlicher und thematisch auf Zahnarztpraxis, Hygiene und Praxislager ausgerichtet.
 - Die Oberfläche wurde für Anfänger vereinfacht: Vorgänge statt abstrakter Buchungen, Zielkonto/Gegenkonto statt isoliertem Soll/Haben, Material rein/raus statt Wareneingang/Lagerabgang.
 - Das Dashboard wurde als Startansicht aufgeräumt und zeigt einen vereinfachten Gesamt-Saldo: Kasse + Bank + offene Patientenrechnungen + Materialwert minus offene Lieferantenrechnungen.
+- Die Oberfläche wurde als Vue-App neu aufgebaut und ersetzt endlose Tabellen im Hauptfluss durch Karten, Timelines, Aktivitätslisten und Detailpanels.
+- Vorgänge werden über ein vereinfachtes Formular mit Vorgangstypen wie Einnahme, Ausgabe, Materialeinkauf, Prophylaxeverkauf und Umbuchung erfasst.
 - Globale Detailansichten wurden als ein zentrales Modal umgesetzt; verknüpfte Datensätze können innerhalb des Modals weiter geöffnet werden.
 - Kontobezogenes Änderungsprotokoll umgesetzt: Vorgänge, Zahlungen, Bereichsänderungen, Import, Reset und Beispieldatenladen erzeugen lesbare Protokolleinträge.
 - Konto-Modal, Bereichsdetails und Einstellungen zeigen Protokolleinträge; Einträge öffnen ein Detail-Modal mit betroffenen Bereichen sowie Vorher/Nachher-Daten.
@@ -60,7 +67,7 @@
 - Dynamische Tabellen werden über DOM-Knoten aufgebaut, nicht über ungeprüfte HTML-Strings.
 - Import, Normalisierung und CSV-Export wurden robuster gemacht.
 - `server.js` ist auf ES-Module umgestellt; Schreibzugriff auf `/api/data` ist standardmäßig deaktiviert.
-- npm-Tooling mit Vite, Vitest und Playwright ist vorbereitet.
+- npm-Tooling mit Vite, Vue, Vitest und Playwright ist vorbereitet.
 - GitHub Actions führt die Node-basierten Tests mit Node 24 aus, weil lokal kein Node.js installiert werden kann.
 
 ## Bekannte Einschränkungen

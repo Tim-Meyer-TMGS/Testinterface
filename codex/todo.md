@@ -2,7 +2,11 @@
 
 ## Tooling
 - [x] `package.json` mit Vite, Vitest und Playwright anlegen
+- [x] Vue 3 und Vite-Vue-Plugin ergänzen
+- [x] GitHub-Pages-kompatible `vite.config.js` mit `base: './'` anlegen
+- [x] GitHub-Pages-Deployment über Actions und `dist`-Artefakt ergänzen
 - [x] GitHub-Actions-Workflow für Unit- und Browser-Tests anlegen
+- [x] GitHub-Actions-Workflow um Vue-Build erweitern
 - [x] Vitest- und Playwright-Testmuster sauber trennen
 - [ ] Tests über GitHub Actions nach Push auswerten
 - [ ] Optional lokal testen, falls später Node.js verfügbar ist
@@ -34,6 +38,8 @@
 - [x] Freundliches Zahnarztpraxis-Design anwenden
 - [x] UI-Begriffe für Anfänger vereinfachen
 - [x] Kontobezogenes Änderungsprotokoll in Bereichen, Konto-Modal und Einstellungen anzeigen
+- [x] Vanilla-UI durch Vue-3-Oberfläche mit Karten, Timelines und Detailpanels ersetzen
+- [x] Vorgangsformular mit einsteigerfreundlichen Vorgangstypen ergänzen
 - [ ] Responsive Tabellen nach Test auf kleinen Viewports nacharbeiten
 
 ## Tests
@@ -41,6 +47,7 @@
 - [x] E2E-Smoke-Test für Dashboard und Journal anlegen
 - [x] Unit-Tests für Audit-Datenmodell und betroffene Konten ergänzen
 - [x] E2E-Test für neuen Vorgang im Änderungsprotokoll ergänzen
+- [x] E2E-Tests an Vue-Timelines und Detail-Modal anpassen
 - [x] CI-Workflow als Ersatz für lokale Node-Installation anlegen
 - [ ] Fehler aus GitHub Actions nach dem ersten Lauf beheben
 

@@ -1,19 +1,20 @@
 # Testplan
 
 ## Automatisierte Tests
-- GitHub Actions Workflow `Test`: installiert Node-Abhängigkeiten, führt Unit-Tests aus und startet Playwright-Smoke-Tests.
+- GitHub Actions Workflow `Test`: installiert Node-Abhängigkeiten, baut die Vue-App, führt Unit-Tests aus und startet Playwright-Smoke-Tests.
 - Unit-Tests liegen in `tests/**/*.test.js`; Playwright-Tests liegen in `tests/**/*.spec.js`.
 - `vitest.config.js` verhindert, dass Playwright-Specs als Unit-Tests ausgeführt werden.
-- Automatisiert geprüft: Audit-Datenmodell, betroffene Konten inklusive Steuerkonto, Vorher/Nachher-Snapshots und ein Browser-Workflow für einen neuen Vorgang im Änderungsprotokoll.
-- Lokal wären `npm test`, `npm run test:e2e` und `npm run check` möglich, falls Node.js verfügbar ist.
+- Automatisiert geprüft: Audit-Datenmodell, betroffene Konten inklusive Steuerkonto, Vorher/Nachher-Snapshots, Dashboard/Timeline und ein Browser-Workflow für einen neuen Vorgang im Änderungsprotokoll.
+- Lokal wären `npm run build`, `npm test`, `npm run test:e2e` und `npm run check` möglich, falls Node.js verfügbar ist.
 
 ## GitHub-Pages-Test
 1. Änderungen committen und pushen.
 2. In GitHub unter `Actions` den Workflow `Test` öffnen.
 3. Warten, bis Unit- und Browser-Tests grün sind.
-4. GitHub Pages unter `Settings > Pages` auf Branch `main` und Ordner `/ (root)` stellen.
-5. Die Pages-URL öffnen.
-6. Einmal `Einstellungen > Daten zurücksetzen` ausführen, falls im Browser noch alte LocalStorage-Daten liegen.
+4. GitHub Pages unter `Settings > Pages` auf `GitHub Actions` als Source stellen.
+5. Den Workflow `Deploy GitHub Pages` abwarten; er baut die Vue-App in `dist` und veröffentlicht genau dieses Artefakt.
+6. Die Pages-URL öffnen.
+7. Einmal `Einstellungen > Daten zurücksetzen` ausführen, falls im Browser noch alte LocalStorage-Daten liegen.
 
 ## Seed-Daten-Prüfung
 - Das Beispiel enthält 27 Vorgänge über Mai und Juni 2026.
@@ -23,11 +24,11 @@
 ## Manuelle Akzeptanztests
 
 ### Detail-Modals
-1. Im Dashboard einen Eintrag unter `Letzte Vorgänge` anklicken.
+1. Im Dashboard einen Eintrag unter `Letzte Aktivitäten` anklicken.
 2. Das Detail-Modal öffnet sich, ohne die Dashboard-Ansicht zu verlassen.
 3. Im Modal ein verknüpftes Ziel- oder Gegenkonto öffnen.
-4. Mit `Escape` schließen.
-5. Im Journal einen Vorgang anklicken.
+4. Mit dem Schließen-Button schließen.
+5. In `Vorgänge` einen Eintrag in der Aktivitätsliste anklicken.
 6. Aus dem Vorgang einen verknüpften Artikel oder eine Materialbewegung öffnen.
 7. Im Lager eine Materialbewegung anklicken und die verknüpfte Buchung öffnen.
 8. Klick auf den Hintergrund schließt das Modal.
