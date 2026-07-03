@@ -17,6 +17,12 @@
 7. Einmal `Einstellungen > Daten zurücksetzen` ausführen, falls im Browser noch alte LocalStorage-Daten liegen.
 8. Falls nur der Schritt `Deploy to GitHub Pages` mit `Deployment failed, try again later` scheitert, Workflow einmal erneut ausführen; der Build-Artefakt-Schritt muss vorher erfolgreich gewesen sein.
 
+## UI-Begriffe
+- App- und Browser-Titel heißen vorlagenneutral `Übungsbuchhaltung`.
+- Im Header wird die aktuell geladene Vorlage angezeigt, z. B. Zahnarztpraxis, Hausarztpraxis, Physiotherapie oder Eigene Übung.
+- `Vorgänge` erklären sich als Geschäftsfälle mit optionaler Steuer-/Lagerwirkung.
+- `Zahlungen` erklären sich als Schnellerfassung für reine Geldbewegungen und offene Posten.
+
 ## Seed-Daten-Prüfung
 - Das Beispiel enthält 27 Vorgänge über Mai und Juni 2026.
 - Erwartete Bereiche: Behandlungserlöse, KZV-Zahlungen, Privatforderungen, Prophylaxeverkäufe, Materialeinkäufe, Miete, Labor und Software.

@@ -17,7 +17,7 @@
 ## Konto
 - `id`: stabile technische ID
 - `accountNo`: SKR03-nahe Kontonummer
-- `name`: einsteigerfreundlicher Anzeigename, z. B. `Offene Patientenrechnungen`
+- `name`: einsteigerfreundlicher Anzeigename, z. B. `Offene Ausgangsrechnungen`
 - `type`: `asset`, `liability`, `revenue`, `expense` oder `tax`
 - `debitTotal`, `creditTotal`, `balance`: berechnete Werte, nicht führende Eingabedaten
 
@@ -48,6 +48,13 @@
 - `inventoryItemId`: optionaler Artikelbezug
 - `inventoryLinkType`: `none`, `in` oder `out`
 - `quantity`: Menge bei Lagerbezug
+
+## Vorgänge und Zahlungen
+- Vorgänge sind die führende Buchungsform für Geschäftsfälle wie Einnahmen, Ausgaben, Materialeinkäufe, Verkäufe und Umbuchungen.
+- Vorgänge können Steuer- und Lagerwirkung haben.
+- Zahlungen sind eine UI-Schnellerfassung für reine Geldbewegungen zwischen Bank/Kasse und Gegenkonto.
+- Zahlungen werden technisch ebenfalls als Buchung gespeichert, aber mit `taxType: 'none'`, `inventoryLinkType: 'none'` und Beschreibungsprefix `Zahlung:`.
+- Deshalb erscheinen Zahlungen im Zahlungsbereich und zusätzlich in der vollständigen Vorgangsliste.
 
 ## Buchungszeilen
 - Buchungszeilen werden aus Buchungen abgeleitet.
@@ -84,5 +91,5 @@
 
 ## Dashboard-Saldo
 - Der Dashboard-Gesamt-Saldo ist eine einsteigerfreundliche Übersichtszahl.
-- Berechnung: Kasse + Bank + offene Patientenrechnungen + Materialwert minus offene Lieferantenrechnungen.
+- Berechnung: Kasse + Bank + offene Ausgangsrechnungen + Materialwert minus offene Lieferantenrechnungen.
 - Er ist kein handelsrechtlicher Abschlusswert, sondern eine Orientierung für den Übungsbetrieb.

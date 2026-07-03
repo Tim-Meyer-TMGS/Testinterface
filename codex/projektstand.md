@@ -1,8 +1,8 @@
 # Projektstand
 
 ## App-Übersicht
-- Name: Praxisbuchhaltung.
-- Zweck: Browserbasierte Lern- und Übungs-App für Buchhaltung, Zahlungen und Lager einer Zahnarztpraxis.
+- Name: Übungsbuchhaltung.
+- Zweck: Browserbasierte Lern- und Übungs-App für Buchhaltung, Zahlungen und Lager in verschiedenen Praxisvorlagen.
 - Zielgruppe: Einsteiger ohne Buchführungsvorwissen, die typische Praxisvorgänge schrittweise nachvollziehen und üben wollen.
 - Plattform: Statische Web-App für GitHub Pages; keine Backend-Pflicht.
 - Speicher: Standardmäßig `localStorage` im Browser, zusätzlich JSON-Export und JSON-Import.
@@ -16,7 +16,7 @@
 - Tests: Node-basierte Unit- und Browser-Tests laufen über GitHub Actions.
 
 ## Hauptbereiche
-- Dashboard: Aufgeräumter Einstieg mit Gesamt-Saldo, vier Kernzahlen, letzten Vorgängen und Materialhinweisen.
+- Dashboard: Aufgeräumter Einstieg mit Gesamt-Saldo, vier Kernzahlen, aktuell geladener Vorlage, letzten Vorgängen und Materialhinweisen.
 - Konten: Bereiche und Salden mit Kontonummern, vereinfachten Typen und einer kontobezogenen Änderungsliste.
 - Buchungen: Erfassung, Bearbeitung, Duplizierung und Löschung von Praxisvorgängen inklusive Steuer- und Lagerwirkung.
 - Zahlungen: Schnellerfassung von Einzahlungen, Abbuchungen und Umbuchungen.
@@ -27,7 +27,7 @@
 
 ## Architektur
 - `index.html`: Minimaler Vue-Mount für die statische GitHub-Pages-App.
-- `style.css`: Eigenes Zahnarztpraxis-Design für Karten, Timelines, Panels und Formulare.
+- `style.css`: Eigenes dezentes Praxis-Design für Karten, Timelines, Panels und Formulare.
 - `src/main.js`: Vue-Einstiegspunkt.
 - `src/App.vue`: Hauptlayout, Navigation, Views, Formulare und tabellenarme Oberfläche.
 - `src/appStore.js`: Vue-State-Schicht mit Laden, Speichern, Commit, Audit, Import und Export.
@@ -60,7 +60,9 @@
 - Die Seed-Daten enthalten keine Beispielbuchungen aus der Zukunft; spätester Beispielvorgang ist der 30.06.2026.
 - Das Design ist freundlicher und thematisch auf Zahnarztpraxis, Hygiene und Praxislager ausgerichtet.
 - Die Oberfläche wurde für Anfänger vereinfacht: Vorgänge statt abstrakter Buchungen, Zielkonto/Gegenkonto statt isoliertem Soll/Haben, Material rein/raus statt Wareneingang/Lagerabgang.
-- Das Dashboard wurde als Startansicht aufgeräumt und zeigt einen vereinfachten Gesamt-Saldo: Kasse + Bank + offene Patientenrechnungen + Materialwert minus offene Lieferantenrechnungen.
+- Die App-Titel sind vorlagenneutral; die aktuell geladene Vorlage wird im Header als Kontext angezeigt.
+- `Vorgänge` sind vollständige Geschäftsfälle mit optionaler Steuer- und Lagerwirkung; `Zahlungen` sind eine vereinfachte Schnellerfassung für reine Geldbewegungen und offene Posten.
+- Das Dashboard wurde als Startansicht aufgeräumt und zeigt einen vereinfachten Gesamt-Saldo: Kasse + Bank + offene Ausgangsrechnungen + Materialwert minus offene Lieferantenrechnungen.
 - Die Oberfläche wurde als Vue-App neu aufgebaut und ersetzt endlose Tabellen im Hauptfluss durch Karten, Timelines, Aktivitätslisten und Detailpanels.
 - Leerer Übungsmodus ergänzt: Nutzer können alle Bereiche/Konten, Vorgänge, Artikel und Bewegungen selbst anlegen; Standardkonten werden dann nicht automatisch ergänzt.
 - Vorlagensystem ergänzt: Zahnarztpraxis, Hausarztpraxis und Physiotherapie laden jeweils eigene Konten, Vorgänge, Artikel und Lagerbewegungen.

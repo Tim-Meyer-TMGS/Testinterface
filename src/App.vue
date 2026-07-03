@@ -74,6 +74,11 @@ const criticalItems = computed(() => store.state.inventoryItems.slice().sort((a,
 const payments = computed(() => store.state.bookings.filter((booking) => booking.description.startsWith('Zahlung:')).sort((a, b) => b.date.localeCompare(a.date)));
 const taxPreview = computed(() => taxSummary(bookingForm));
 const hasEnoughAccounts = computed(() => store.state.accounts.length >= 2);
+const activeTemplate = computed(() => dataTemplates.find((template) => template.id === store.state.settings.templateId) || null);
+const appContextLabel = computed(() => {
+  if (store.state.settings.setupMode === 'blank') return 'Eigene Übung';
+  return activeTemplate.value?.label || 'Beispielvorlage';
+});
 
 onMounted(async () => {
   await load();
@@ -285,8 +290,8 @@ async function loadTemplateAndPrepare(templateId) {
   <div class="app-shell" :class="{ 'menu-open': menuOpen }">
     <aside class="sidebar">
       <div class="brand">
-        <h1>Praxisbuchhaltung</h1>
-        <p>Zahnarztpraxis · verständlich üben</p>
+        <h1>Übungsbuchhaltung</h1>
+        <p>{{ appContextLabel }} · verständlich üben</p>
       </div>
       <nav class="nav" aria-label="Hauptnavigation">
         <button v-for="view in views" :key="view.id" class="nav-button" :class="{ active: currentView === view.id }" type="button" @click="setView(view.id)">
@@ -300,7 +305,7 @@ async function loadTemplateAndPrepare(templateId) {
         <div class="topbar-left">
           <button class="menu-toggle" type="button" aria-label="Navigation umschalten" :aria-expanded="String(menuOpen)" @click="menuOpen = !menuOpen">☰</button>
           <div>
-            <p class="eyebrow">Zahnarztpraxis</p>
+            <p class="eyebrow">{{ appContextLabel }}</p>
             <h2>{{ pageTitle }}</h2>
           </div>
         </div>
@@ -319,7 +324,7 @@ async function loadTemplateAndPrepare(templateId) {
             <div>
               <p class="eyebrow">Praxisstatus</p>
               <h3>{{ formatCurrency(summary.totalBalance) }}</h3>
-              <p class="small">Kasse + Bank + offene Patientenrechnungen + Materialwert minus offene Lieferantenrechnungen.</p>
+              <p class="small">Kasse + Bank + offene Ausgangsrechnungen + Materialwert minus offene Lieferantenrechnungen.</p>
               <p v-if="store.state.settings.setupMode === 'blank'" class="small">Leerer Übungsmodus: Lege zuerst eigene Bereiche/Konten an.</p>
             </div>
             <div class="dashboard-actions">
@@ -331,7 +336,7 @@ async function loadTemplateAndPrepare(templateId) {
 
           <div class="stats-grid">
             <article class="stat-card"><span class="label">Bank + Kasse</span><strong class="value">{{ formatCurrency(summary.cashAndBank) }}</strong></article>
-            <article class="stat-card"><span class="label">Offene Patientenrechnungen</span><strong class="value">{{ formatCurrency(summary.receivables) }}</strong></article>
+            <article class="stat-card"><span class="label">Offene Ausgangsrechnungen</span><strong class="value">{{ formatCurrency(summary.receivables) }}</strong></article>
             <article class="stat-card"><span class="label">Offene Lieferantenrechnungen</span><strong class="value">{{ formatCurrency(summary.payables) }}</strong></article>
             <article class="stat-card"><span class="label">Materialwert</span><strong class="value">{{ formatCurrency(summary.inventoryValue) }}</strong></article>
           </div>
@@ -440,6 +445,7 @@ async function loadTemplateAndPrepare(templateId) {
               <h3>{{ editingBookingId ? 'Vorgang bearbeiten' : 'Vorgang erfassen' }}</h3>
               <button v-if="editingBookingId" type="button" class="secondary" @click="resetBookingForm">Abbrechen</button>
             </div>
+            <p class="small">Vorgänge sind die eigentlichen Geschäftsfälle: Einnahmen, Ausgaben, Materialeinkäufe, Verkäufe oder Umbuchungen. Hier werden bei Bedarf Steuer und Lagerwirkung mit erfasst.</p>
             <p v-if="!hasEnoughAccounts" class="detail-warning">Bitte zuerst mindestens zwei eigene Bereiche/Konten anlegen. Danach kannst du Vorgänge buchen.</p>
             <div class="template-grid">
               <label v-for="template in bookingTemplates" :key="template.id" class="template-card" :class="{ selected: selectedTemplate === template.id }">
@@ -501,6 +507,7 @@ async function loadTemplateAndPrepare(templateId) {
         <section v-else-if="currentView === 'payments'" class="view active">
           <section class="card">
             <div class="section-header"><h3>Zahlung erfassen</h3></div>
+            <p class="small">Zahlungen sind eine schnelle Erfassung für Bank, Kasse und offene Rechnungen. Sie buchen nur Geldbewegungen ohne Steuer- oder Lagerdetails und erscheinen deshalb auch in der Vorgangsliste.</p>
             <p v-if="!hasEnoughAccounts" class="detail-warning">Bitte zuerst mindestens zwei eigene Bereiche/Konten anlegen. Danach kannst du Zahlungen erfassen.</p>
             <form class="form-grid" @submit.prevent="submitPayment">
               <label>Art <select v-model="paymentForm.type"><option value="deposit">Einzahlung</option><option value="withdrawal">Abbuchung</option><option value="transfer">Umbuchung Bank/Kasse</option></select></label>
