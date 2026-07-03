@@ -15,7 +15,8 @@
 5. Den Workflow `Deploy GitHub Pages` abwarten; er baut die Vue-App in `dist` und veröffentlicht genau dieses Artefakt.
 6. Die Pages-URL öffnen.
 7. Einmal `Einstellungen > Daten zurücksetzen` ausführen, falls im Browser noch alte LocalStorage-Daten liegen.
-8. Falls nur der Schritt `Deploy to GitHub Pages` mit `Deployment failed, try again later` scheitert, Workflow einmal erneut ausführen; der Build-Artefakt-Schritt muss vorher erfolgreich gewesen sein.
+8. Falls nur der Schritt `Deploy to GitHub Pages` mit `Deployment failed, try again later` scheitert, zuerst prüfen: `Settings > Pages > Source` steht auf `GitHub Actions`, es läuft kein älteres Pages-Deployment mehr, und der Artifact-Schritt `Upload artifact` war erfolgreich.
+9. Danach den Workflow `Deploy GitHub Pages` einmal manuell neu starten. Der Workflow nutzt ein explizites Artifact `github-pages`, normalisiert die `dist`-Dateirechte und verwendet das von `deploy-pages` erlaubte Timeout von 600000 ms.
 
 ## UI-Begriffe
 - App- und Browser-Titel heißen vorlagenneutral `Übungsbuchhaltung`.
