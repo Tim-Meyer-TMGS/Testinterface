@@ -15,6 +15,7 @@
 5. Den Workflow `Deploy GitHub Pages` abwarten; er baut die Vue-App in `dist` und veröffentlicht genau dieses Artefakt.
 6. Die Pages-URL öffnen.
 7. Einmal `Einstellungen > Daten zurücksetzen` ausführen, falls im Browser noch alte LocalStorage-Daten liegen.
+8. Falls nur der Schritt `Deploy to GitHub Pages` mit `Deployment failed, try again later` scheitert, Workflow einmal erneut ausführen; der Build-Artefakt-Schritt muss vorher erfolgreich gewesen sein.
 
 ## Seed-Daten-Prüfung
 - Das Beispiel enthält 27 Vorgänge über Mai und Juni 2026.

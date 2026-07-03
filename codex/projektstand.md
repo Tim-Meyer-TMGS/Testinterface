@@ -42,7 +42,7 @@
 - `public/data/app-data.json`: leere Laufzeit-Grundvorlage für den Vite/GitHub-Pages-Build.
 - `public/data/templates/*.json`: Laufzeitdaten für die auswählbaren Vorlagen im Vite/GitHub-Pages-Build.
 - `.github/workflows/test.yml`: CI-Tests in GitHub Actions.
-- `.github/workflows/pages.yml`: Baut die Vue-App und veröffentlicht `dist` über GitHub Pages.
+- `.github/workflows/pages.yml`: Baut die Vue-App und veröffentlicht `dist` über GitHub Pages mit den aktuellen Pages-Actions für Node 24.
 - `vitest.config.js`: grenzt Unit-Tests auf `tests/**/*.test.js` ein, damit Playwright-Specs nicht von Vitest eingesammelt werden.
 
 ## Status
@@ -81,6 +81,7 @@
 - `server.js` ist auf ES-Module umgestellt; Schreibzugriff auf `/api/data` ist standardmäßig deaktiviert.
 - npm-Tooling mit Vite, Vue, Vitest und Playwright ist vorbereitet.
 - GitHub Actions führt die Node-basierten Tests mit Node 24 aus, weil lokal kein Node.js installiert werden kann.
+- Der Pages-Deploy-Workflow nutzt `actions/configure-pages@v6`, `actions/upload-pages-artifact@v5` und `actions/deploy-pages@v5`; laufende Deployments werden nicht mehr durch neue Pushes automatisch abgebrochen.
 
 ## Bekannte Einschränkungen
 - Die App ist eine Lern-App, keine GoBD- oder revisionssichere Buchhaltung.
