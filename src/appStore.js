@@ -1,11 +1,11 @@
 import { computed, reactive } from 'vue';
 import { buildBookingLines, calculateAccountBalances, calculateTax, getBookingDisplayAmount, normalizeBookingAmounts } from './accounting.js';
 import { appendAuditEntries, bookingAccountIds, createAuditEntry, snapshotAccount, snapshotBooking, systemSnapshot } from './audit.js';
-import { ACCOUNT_IDS, INVENTORY_LINK_LABELS, INVENTORY_LINK_TYPES, TAX_LABELS, TYPE_LABELS } from './constants.js';
+import { ACCOUNT_IDS, DATA_TEMPLATES, INVENTORY_LINK_LABELS, INVENTORY_LINK_TYPES, TAX_LABELS, TYPE_LABELS } from './constants.js';
 import { toCsv } from './csv.js';
 import { calculateInventoryItems, syncMovementForBooking, validateMovement } from './inventory.js';
-import { generateBookingNumber, generateId, generateNextAccountNumber, normalizeState, validateState } from './state.js';
-import { loadSeedState, localStorageAdapter } from './storage.js';
+import { createBlankState, generateBookingNumber, generateId, generateNextAccountNumber, normalizeState, validateState } from './state.js';
+import { loadTemplateState, localStorageAdapter } from './storage.js';
 
 export const store = reactive({
   state: normalizeState({}),
@@ -55,6 +55,8 @@ export const bookingTemplates = [
   { id: 'transfer', label: 'Umbuchung', description: 'Geld oder offene Posten werden umgebucht.', debitAccountId: ACCOUNT_IDS.bank, creditAccountId: ACCOUNT_IDS.cash, taxType: 'none', taxMode: 'net', inventoryLinkType: 'none' }
 ];
 
+export const dataTemplates = DATA_TEMPLATES;
+
 export function today() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -97,6 +99,19 @@ export async function commit(nextState, message = 'Im Browser gespeichert', audi
   store.state = recalculate(normalizeState(appendAuditEntries(nextState, auditEntries)));
   store.state = recalculate(await localStorageAdapter.save(store.state));
   store.status = `${message} · ${formatDateTime(store.state.settings.lastSavedAt)}`;
+}
+
+export async function startBlankData() {
+  const before = systemSnapshot(store.state);
+  const blankState = createBlankState();
+  await commit(blankState, 'Leerer Übungsmodus gestartet', [createAuditEntry('reset', 'system', null, {
+    title: 'Leerer Übungsmodus',
+    summary: 'Alle Bereiche, Vorgänge, Artikel und Bewegungen wurden geleert. Die Konten werden selbst angelegt.',
+    before,
+    after: systemSnapshot(blankState)
+  })]);
+  store.selectedAccountId = null;
+  store.selectedBookingId = null;
 }
 
 export function dashboardSummary() {
@@ -251,13 +266,16 @@ export async function deleteBooking(id) {
 
 export async function savePayment(input) {
   if (!input.description || Number(input.amount) <= 0 || input.accountId === input.counterAccountId) throw new Error('Bitte gültige Zahlungsdaten eingeben.');
+  if (store.state.accounts.length < 2) throw new Error('Bitte zuerst mindestens zwei Bereiche anlegen.');
+  const accountId = store.state.accounts.some((account) => account.id === input.accountId) ? input.accountId : store.state.accounts[0].id;
+  const counterAccountId = store.state.accounts.some((account) => account.id === input.counterAccountId) ? input.counterAccountId : store.state.accounts[1].id;
   const booking = normalizeBookingAmounts({
     id: generateId('booking'),
     date: input.date,
     documentNo: String(input.documentNo || '').trim() || generateBookingNumber(store.state.bookings),
     description: `Zahlung: ${input.description}`,
-    debitAccountId: input.type === 'deposit' ? input.accountId : input.type === 'withdrawal' ? input.counterAccountId : ACCOUNT_IDS.bank,
-    creditAccountId: input.type === 'deposit' ? input.counterAccountId : input.type === 'withdrawal' ? input.accountId : ACCOUNT_IDS.cash,
+    debitAccountId: input.type === 'deposit' ? accountId : input.type === 'withdrawal' ? counterAccountId : accountId,
+    creditAccountId: input.type === 'deposit' ? counterAccountId : input.type === 'withdrawal' ? accountId : counterAccountId,
     amount: Number(input.amount),
     taxType: 'none',
     taxMode: 'net',
@@ -357,14 +375,21 @@ export async function resetData() {
 }
 
 export async function loadSampleData() {
+  await loadDataTemplate('dentist');
+}
+
+export async function loadDataTemplate(templateId) {
   const before = systemSnapshot(store.state);
-  const sampleState = await loadSeedState();
-  await commit({ ...sampleState, auditLog: store.state.auditLog }, 'Beispieldaten geladen', [createAuditEntry('load-sample', 'system', null, {
-    title: 'Beispieldaten geladen',
-    summary: 'Die Zahnarztpraxis-Beispieldaten wurden geladen. Das Änderungsprotokoll blieb erhalten.',
+  const template = DATA_TEMPLATES.find((entry) => entry.id === templateId) || DATA_TEMPLATES[0];
+  const templateState = await loadTemplateState(template.id);
+  await commit({ ...templateState, auditLog: store.state.auditLog }, `${template.label} geladen`, [createAuditEntry('load-sample', 'system', null, {
+    title: `${template.label} geladen`,
+    summary: `Die Vorlage ${template.label} wurde geladen. Das Änderungsprotokoll blieb erhalten.`,
     before,
-    after: systemSnapshot(sampleState)
+    after: systemSnapshot(templateState)
   })]);
+  store.selectedAccountId = store.state.accounts[0]?.id || null;
+  store.selectedBookingId = store.state.bookings[0]?.id || null;
 }
 
 export async function importJsonFile(file) {

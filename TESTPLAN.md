@@ -20,6 +20,9 @@
 - Das Beispiel enthält 27 Vorgänge über Mai und Juni 2026.
 - Erwartete Bereiche: Behandlungserlöse, KZV-Zahlungen, Privatforderungen, Prophylaxeverkäufe, Materialeinkäufe, Miete, Labor und Software.
 - Lagerbestände dürfen nach Seed-Import nicht negativ sein.
+- `Einstellungen > Leeren Übungsmodus starten` erzeugt eine App ohne vorbereitete Bereiche/Konten.
+- In `Einstellungen > Vorlage wählen` stehen Zahnarztpraxis, Hausarztpraxis und Physiotherapie zur Auswahl.
+- Die fachlichen Beispieldaten liegen als drei Dateien unter `public/data/templates`; `public/data/app-data.json` bleibt als leere Grundvorlage erhalten.
 
 ## Manuelle Akzeptanztests
 
@@ -32,6 +35,20 @@
 6. Aus dem Vorgang einen verknüpften Artikel oder eine Materialbewegung öffnen.
 7. Im Lager eine Materialbewegung anklicken und die verknüpfte Buchung öffnen.
 8. Klick auf den Hintergrund schließt das Modal.
+
+### Speichern ohne automatisches Modal
+1. In `Vorgänge` einen neuen Vorgang erfassen.
+2. `Vorgang speichern` klicken.
+3. Es erscheint nur die Statusmeldung `Vorgang gespeichert.`.
+4. Es öffnet sich kein Detail-Modal automatisch.
+5. Der neue Vorgang ist anschließend in der Aktivitätsliste anklickbar.
+
+### Responsive Prüfung
+1. GitHub Pages auf ca. 390 px Breite öffnen.
+2. Navigation über das Menü öffnen und schließen.
+3. Dashboard, Vorgänge, Bereiche, Lager und Einstellungen prüfen.
+4. Karten, Statuschips, Formulare und Modal-Inhalte dürfen nicht horizontal aus dem Viewport laufen.
+5. Aktionsbuttons bleiben bedienbar und Text bricht lesbar um.
 
 ### Verkauf mit Umsatzsteuer
 1. Vorgang erstellen: Kasse an Verkauf Prophylaxeartikel, 119 EUR brutto, 19 % Umsatzsteuer.
@@ -73,6 +90,23 @@
 5. Den Vorgang bearbeiten; der neue Protokolleintrag enthält Vorher- und Nachher-Daten.
 6. `Daten zurücksetzen` ausführen; das Protokoll bleibt sichtbar und enthält einen Reset-Eintrag.
 7. Ein Bereich ohne Änderungen zeigt einen leeren Zustand statt eines Fehlers.
+
+### Leerer Übungsmodus
+1. `Einstellungen > Leeren Übungsmodus starten` ausführen.
+2. Dashboard und Bereiche zeigen leere Zustände statt Beispieldaten.
+3. Vorgänge und Zahlungen zeigen einen Hinweis, dass zuerst mindestens zwei Bereiche/Konten nötig sind.
+4. Zwei eigene Bereiche anlegen.
+5. Danach lässt sich ein Vorgang mit diesen eigenen Bereichen speichern.
+6. `Zahnarztpraxis > Vorlage laden` stellt die Standardvorlage wieder her.
+
+### Vorlagen
+1. `Einstellungen > Vorlage wählen` öffnen.
+2. `Hausarztpraxis` laden.
+3. Dashboard, Bereiche, Vorgänge und Lager zeigen hausärztliche Beispielwerte.
+4. `Physiotherapie` laden.
+5. Dashboard, Bereiche, Vorgänge und Lager zeigen physiotherapeutische Beispielwerte.
+6. `Zahnarztpraxis` laden.
+7. Die ursprünglichen Zahnarzt-Beispieldaten mit 27 Vorgängen sind wieder sichtbar.
 
 ### Import / Export
 1. JSON exportieren.

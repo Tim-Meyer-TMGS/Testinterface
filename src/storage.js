@@ -1,12 +1,27 @@
-import { DATA_FILE_URL, STORAGE_KEY } from './constants.js';
+import { DATA_FILE_URL, DATA_TEMPLATES, STORAGE_KEY } from './constants.js';
 import { createInitialState, normalizeState } from './state.js';
 
 export async function loadSeedState() {
+  return loadTemplateState('dentist');
+}
+
+export async function loadTemplateState(templateId = 'dentist') {
+  const template = DATA_TEMPLATES.find((entry) => entry.id === templateId) || DATA_TEMPLATES[0];
   try {
-    const response = await fetch(DATA_FILE_URL, { cache: 'no-store' });
-    if (response.ok) return normalizeState(await response.json());
+    const response = await fetch(template?.url || DATA_FILE_URL, { cache: 'no-store' });
+    if (response.ok) {
+      const parsed = await response.json();
+      return normalizeState({
+        ...parsed,
+        settings: {
+          ...parsed.settings,
+          setupMode: 'template',
+          templateId: template?.id || 'dentist'
+        }
+      });
+    }
   } catch (error) {
-    console.error('Fehler beim Laden der Seed-Daten', error);
+    console.error('Fehler beim Laden der Vorlagendaten', error);
   }
   return createInitialState();
 }
@@ -40,6 +55,7 @@ export const localStorageAdapter = {
 };
 
 function isEmptyStoredState(state) {
+  if (state.settings?.setupMode === 'blank') return false;
   return !state.bookings.length && !state.inventoryItems.length && !state.inventoryMovements.length;
 }
 

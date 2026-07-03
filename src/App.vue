@@ -3,13 +3,13 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { INVENTORY_LINK_TYPES, TAX_MODES, TAX_TYPES } from './constants.js';
 import DetailModal from './components/DetailModal.vue';
 import {
-  accountLabel,
   accountOptions,
   auditEntriesForAccount,
   bookingImpact,
   bookingKind,
   bookingTemplates,
   dashboardSummary,
+  dataTemplates,
   deleteBooking,
   deleteInventoryMovement,
   duplicateBooking,
@@ -23,7 +23,7 @@ import {
   itemOptions,
   labels,
   load,
-  loadSampleData,
+  loadDataTemplate,
   resetData,
   saveAccount,
   saveBooking,
@@ -32,6 +32,7 @@ import {
   savePayment,
   sortedAudit,
   sortedBookings,
+  startBlankData,
   store,
   taxSummary,
   today
@@ -72,6 +73,7 @@ const selectedAccountAudit = computed(() => selectedAccount.value ? auditEntries
 const criticalItems = computed(() => store.state.inventoryItems.slice().sort((a, b) => Number(b.needsReorder) - Number(a.needsReorder) || a.currentStock - b.currentStock).slice(0, 6));
 const payments = computed(() => store.state.bookings.filter((booking) => booking.description.startsWith('Zahlung:')).sort((a, b) => b.date.localeCompare(a.date)));
 const taxPreview = computed(() => taxSummary(bookingForm));
+const hasEnoughAccounts = computed(() => store.state.accounts.length >= 2);
 
 onMounted(async () => {
   await load();
@@ -156,11 +158,16 @@ function closeDetail() {
 
 function applyTemplate(templateId) {
   const template = bookingTemplates.find((entry) => entry.id === templateId) || bookingTemplates[0];
-  bookingForm.debitAccountId = template.debitAccountId;
-  bookingForm.creditAccountId = template.creditAccountId;
+  bookingForm.debitAccountId = existingAccountId(template.debitAccountId, 0);
+  bookingForm.creditAccountId = existingAccountId(template.creditAccountId, 1);
   bookingForm.taxType = template.taxType;
   bookingForm.taxMode = template.taxMode;
   bookingForm.inventoryLinkType = template.inventoryLinkType;
+}
+
+function existingAccountId(preferredId, fallbackIndex) {
+  if (store.state.accounts.some((account) => account.id === preferredId)) return preferredId;
+  return store.state.accounts[fallbackIndex]?.id || '';
 }
 
 async function run(action, success = '') {
@@ -175,9 +182,8 @@ async function run(action, success = '') {
 
 async function submitBooking() {
   await run(async () => {
-    const booking = await saveBooking({ ...bookingForm }, editingBookingId.value);
+    await saveBooking({ ...bookingForm }, editingBookingId.value);
     resetBookingForm();
-    openDetail('booking', booking.id);
   }, 'Vorgang gespeichert.');
 }
 
@@ -219,6 +225,9 @@ async function submitAccount() {
   await run(async () => {
     await saveAccount({ ...accountForm });
     Object.assign(accountForm, { accountNo: '', name: '', type: 'asset' });
+    applyTemplate(selectedTemplate.value);
+    paymentForm.accountId = existingAccountId(paymentForm.accountId, 0);
+    paymentForm.counterAccountId = existingAccountId(paymentForm.counterAccountId, 1);
   }, 'Bereich gespeichert.');
 }
 
@@ -246,6 +255,29 @@ async function handleImport(event) {
 async function confirmReset() {
   if (!confirm('Alle Daten wirklich zurücksetzen? Das Änderungsprotokoll bleibt erhalten.')) return;
   await run(resetData, 'Daten zurückgesetzt.');
+}
+
+async function confirmBlankMode() {
+  if (!confirm('Leeren Übungsmodus starten? Alle Bereiche, Vorgänge, Artikel und Bewegungen werden geleert.')) return;
+  await run(async () => {
+    await startBlankData();
+    resetBookingForm();
+    Object.assign(paymentForm, defaultPaymentForm(), {
+      accountId: '',
+      counterAccountId: ''
+    });
+    setView('accounts');
+  }, 'Leerer Übungsmodus gestartet.');
+}
+
+async function loadTemplateAndPrepare(templateId) {
+  await run(async () => {
+    await loadDataTemplate(templateId);
+    resetBookingForm();
+    paymentForm.accountId = existingAccountId(paymentForm.accountId, 0);
+    paymentForm.counterAccountId = existingAccountId(paymentForm.counterAccountId, 1);
+    movementForm.itemId = store.state.inventoryItems[0]?.id || '';
+  }, 'Vorlage geladen.');
 }
 </script>
 
@@ -288,6 +320,7 @@ async function confirmReset() {
               <p class="eyebrow">Praxisstatus</p>
               <h3>{{ formatCurrency(summary.totalBalance) }}</h3>
               <p class="small">Kasse + Bank + offene Patientenrechnungen + Materialwert minus offene Lieferantenrechnungen.</p>
+              <p v-if="store.state.settings.setupMode === 'blank'" class="small">Leerer Übungsmodus: Lege zuerst eigene Bereiche/Konten an.</p>
             </div>
             <div class="dashboard-actions">
               <button type="button" @click="setView('bookings')">Vorgang erfassen</button>
@@ -359,6 +392,7 @@ async function confirmReset() {
                   <span>{{ labels.accountTypes[account.type] }}</span>
                   <b>{{ formatCurrency(account.balance) }}</b>
                 </button>
+                <p v-if="!store.state.accounts.length" class="empty-state">Noch keine Bereiche vorhanden. Lege unten deinen ersten Bereich an.</p>
               </div>
             </section>
 
@@ -406,6 +440,7 @@ async function confirmReset() {
               <h3>{{ editingBookingId ? 'Vorgang bearbeiten' : 'Vorgang erfassen' }}</h3>
               <button v-if="editingBookingId" type="button" class="secondary" @click="resetBookingForm">Abbrechen</button>
             </div>
+            <p v-if="!hasEnoughAccounts" class="detail-warning">Bitte zuerst mindestens zwei eigene Bereiche/Konten anlegen. Danach kannst du Vorgänge buchen.</p>
             <div class="template-grid">
               <label v-for="template in bookingTemplates" :key="template.id" class="template-card" :class="{ selected: selectedTemplate === template.id }">
                 <input v-model="selectedTemplate" type="radio" :value="template.id" />
@@ -435,7 +470,7 @@ async function confirmReset() {
                 </div>
               </details>
               <div class="tax-summary full-width">Netto: {{ formatCurrency(taxPreview.netAmount) }} · Steuer: {{ formatCurrency(taxPreview.taxAmount) }} · Brutto: {{ formatCurrency(taxPreview.grossAmount) }}</div>
-              <div class="form-actions"><button type="submit">Vorgang speichern</button></div>
+              <div class="form-actions"><button type="submit" :disabled="!hasEnoughAccounts">Vorgang speichern</button></div>
             </form>
           </section>
 
@@ -466,6 +501,7 @@ async function confirmReset() {
         <section v-else-if="currentView === 'payments'" class="view active">
           <section class="card">
             <div class="section-header"><h3>Zahlung erfassen</h3></div>
+            <p v-if="!hasEnoughAccounts" class="detail-warning">Bitte zuerst mindestens zwei eigene Bereiche/Konten anlegen. Danach kannst du Zahlungen erfassen.</p>
             <form class="form-grid" @submit.prevent="submitPayment">
               <label>Art <select v-model="paymentForm.type"><option value="deposit">Einzahlung</option><option value="withdrawal">Abbuchung</option><option value="transfer">Umbuchung Bank/Kasse</option></select></label>
               <label>Datum <input v-model="paymentForm.date" type="date" required /></label>
@@ -474,7 +510,7 @@ async function confirmReset() {
               <label>Betrag <input v-model="paymentForm.amount" type="number" min="0.01" step="0.01" required /></label>
               <label>Beleg <input v-model="paymentForm.documentNo" /></label>
               <label class="full-width">Beschreibung <input v-model="paymentForm.description" required /></label>
-              <div class="form-actions"><button type="submit">Speichern</button></div>
+              <div class="form-actions"><button type="submit" :disabled="!hasEnoughAccounts">Zahlung speichern</button></div>
             </form>
           </section>
           <section class="card">
@@ -563,7 +599,20 @@ async function confirmReset() {
             <h3>Datensätze</h3>
             <div class="action-stack">
               <button type="button" @click="confirmReset">Daten zurücksetzen</button>
-              <button type="button" class="secondary" @click="run(loadSampleData, 'Beispieldaten geladen.')">Beispieldaten laden</button>
+              <button type="button" class="secondary" @click="confirmBlankMode">Leeren Übungsmodus starten</button>
+            </div>
+            <p class="small">Im leeren Übungsmodus legst du alle Bereiche/Konten, Vorgänge, Artikel und Bewegungen selbst an.</p>
+          </section>
+          <section class="card">
+            <div class="section-header">
+              <h3>Vorlage wählen</h3>
+            </div>
+            <div class="template-grid">
+              <article v-for="template in dataTemplates" :key="template.id" class="template-card" :class="{ selected: store.state.settings.templateId === template.id }">
+                <strong>{{ template.label }}</strong>
+                <span>{{ template.description }}</span>
+                <button type="button" class="secondary" @click="loadTemplateAndPrepare(template.id)">Vorlage laden</button>
+              </article>
             </div>
           </section>
           <section class="card">

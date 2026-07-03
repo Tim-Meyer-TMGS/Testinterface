@@ -1,5 +1,25 @@
 export const STORAGE_KEY = 'buchhaltungs-uebung-data-v2';
 export const DATA_FILE_URL = `${import.meta.env.BASE_URL}data/app-data.json`;
+export const DATA_TEMPLATES = [
+  {
+    id: 'dentist',
+    label: 'Zahnarztpraxis',
+    description: 'Behandlungshonorare, KZV-Abschläge, Privatleistungen, Prophylaxeartikel und Praxislager.',
+    url: `${import.meta.env.BASE_URL}data/templates/zahnarztpraxis.json`
+  },
+  {
+    id: 'general-practice',
+    label: 'Hausarztpraxis',
+    description: 'KV-Abschläge, Privatatteste, Impfstoff-/Praxisbedarf, Labor, Miete und Software.',
+    url: `${import.meta.env.BASE_URL}data/templates/hausarztpraxis.json`
+  },
+  {
+    id: 'physiotherapy',
+    label: 'Physiotherapie',
+    description: 'Therapieerlöse, Selbstzahler, Kursangebote, Verbrauchsmaterial und Praxisbetrieb.',
+    url: `${import.meta.env.BASE_URL}data/templates/physiotherapie.json`
+  }
+];
 
 export const ACCOUNT_IDS = {
   cash: 'account-cash',

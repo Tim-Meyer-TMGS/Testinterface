@@ -16,7 +16,20 @@ export function createInitialState() {
     inventoryMovements: [],
     auditLog: [],
     progress: { completedSteps: [], lastUpdated: null },
-    settings: { exportedAt: null, createdAt: new Date().toISOString(), lastSavedAt: null }
+    settings: { exportedAt: null, createdAt: new Date().toISOString(), lastSavedAt: null, setupMode: 'sample' }
+  };
+}
+
+export function createBlankState() {
+  return {
+    schemaVersion: 2,
+    accounts: [],
+    bookings: [],
+    inventoryItems: [],
+    inventoryMovements: [],
+    auditLog: [],
+    progress: { completedSteps: [], lastUpdated: null },
+    settings: { exportedAt: null, createdAt: new Date().toISOString(), lastSavedAt: null, setupMode: 'blank' }
   };
 }
 
@@ -95,14 +108,18 @@ function normalizeMovement(movement) {
 export function normalizeState(parsed) {
   const fallback = createInitialState();
   if (!parsed || typeof parsed !== 'object') return fallback;
-  const rawAccounts = (Array.isArray(parsed.accounts) && parsed.accounts.length ? parsed.accounts : fallback.accounts).map(normalizeAccount);
+  const setupMode = ['blank', 'template'].includes(parsed.settings?.setupMode) ? parsed.settings.setupMode : 'sample';
+  const allowEmptyAccounts = setupMode === 'blank';
+  const keepTemplateAccounts = setupMode === 'template';
+  const sourceAccounts = Array.isArray(parsed.accounts) && (parsed.accounts.length || allowEmptyAccounts) ? parsed.accounts : fallback.accounts;
+  const rawAccounts = sourceAccounts.map(normalizeAccount);
   const existingAccountIds = new Set(rawAccounts.map((account) => account.id));
   const existingAccountNos = new Set(rawAccounts.map((account) => account.accountNo));
   const accounts = [
     ...rawAccounts,
-    ...DEFAULT_ACCOUNTS
-      .filter((account) => !existingAccountIds.has(account.id) && !existingAccountNos.has(account.accountNo))
-      .map(normalizeAccount)
+    ...(allowEmptyAccounts || keepTemplateAccounts ? [] : DEFAULT_ACCOUNTS
+        .filter((account) => !existingAccountIds.has(account.id) && !existingAccountNos.has(account.accountNo))
+        .map(normalizeAccount))
   ];
   const bookings = (Array.isArray(parsed.bookings) ? parsed.bookings : []).map((booking) => normalizeBooking(booking, parsed.bookings || []));
   return {
@@ -121,7 +138,9 @@ export function normalizeState(parsed) {
       createdAt: parsed.settings?.createdAt || new Date().toISOString(),
       lastSavedAt: parsed.settings?.lastSavedAt || null,
       selectedAccountId: parsed.settings?.selectedAccountId || null,
-      selectedBookingId: parsed.settings?.selectedBookingId || null
+      selectedBookingId: parsed.settings?.selectedBookingId || null,
+      setupMode,
+      templateId: parsed.settings?.templateId || (setupMode === 'template' ? 'dentist' : null)
     }
   };
 }

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "exportedAt": "2026-06-30T00:00:00.000Z",
+  "accounts": [
+    { "id": "account-cash", "accountNo": "1000", "name": "Kasse", "type": "asset" },
+    { "id": "account-bank", "accountNo": "1200", "name": "Bank", "type": "asset" },
+    { "id": "account-receivables", "accountNo": "1400", "name": "Offene Patientenrechnungen", "type": "asset" },
+    { "id": "account-payables", "accountNo": "1600", "name": "Offene Lieferantenrechnungen", "type": "liability" },
+    { "id": "account-input-vat", "accountNo": "1576", "name": "Vorsteuer aus Einkaeufen 19 %", "type": "tax" },
+    { "id": "account-vat", "accountNo": "1776", "name": "Umsatzsteuer aus Kursen/Verkauf 19 %", "type": "tax" },
+    { "id": "account-equity", "accountNo": "0800", "name": "Eigenkapital", "type": "liability" },
+    { "id": "account-inventory", "accountNo": "3980", "name": "Therapie- und Praxislager", "type": "asset" },
+    { "id": "account-purchases", "accountNo": "3400", "name": "Therapie- und Verbrauchsmaterial", "type": "expense" },
+    { "id": "account-lab", "accountNo": "4780", "name": "Fremdleistungen und Fortbildung", "type": "expense" },
+    { "id": "account-rent", "accountNo": "4210", "name": "Praxisraeume / Miete", "type": "expense" },
+    { "id": "account-expenses", "accountNo": "4900", "name": "Sonstige Praxiskosten", "type": "expense" },
+    { "id": "account-sales", "accountNo": "8000", "name": "Therapieerloese", "type": "revenue" },
+    { "id": "account-product-sales", "accountNo": "8400", "name": "Kurse und Materialverkauf", "type": "revenue" }
+  ],
+  "bookings": [
+    { "id": "pt-booking-1", "date": "2026-05-01", "documentNo": "PT-1001", "description": "Eroeffnungseinlage Physiotherapiepraxis", "debitAccountId": "account-bank", "creditAccountId": "account-equity", "amount": 12000, "taxType": "none", "taxMode": "net", "inventoryItemId": null, "inventoryLinkType": "none", "quantity": null, "createdAt": "2026-05-01T09:00:00.000Z" },
+    { "id": "pt-booking-2", "date": "2026-05-03", "documentNo": "PT-1002", "description": "Zahlung gesetzliche Heilmittelabrechnung Mai", "debitAccountId": "account-bank", "creditAccountId": "account-sales", "amount": 4800, "taxType": "none", "taxMode": "net", "inventoryItemId": null, "inventoryLinkType": "none", "quantity": null, "createdAt": "2026-05-03T10:00:00.000Z" },
+    { "id": "pt-booking-3", "date": "2026-05-04", "documentNo": "PT-1003", "description": "Einkauf Kinesio-Tape", "debitAccountId": "account-purchases", "creditAccountId": "account-payables", "amount": 214.2, "taxType": "input19", "taxMode": "gross", "inventoryItemId": "pt-item-tape", "inventoryLinkType": "in", "quantity": 24, "createdAt": "2026-05-04T12:00:00.000Z" },
+    { "id": "pt-booking-4", "date": "2026-05-07", "documentNo": "PT-1004", "description": "Barzahlung Selbstzahler Massage", "debitAccountId": "account-cash", "creditAccountId": "account-sales", "amount": 75, "taxType": "none", "taxMode": "net", "inventoryItemId": null, "inventoryLinkType": "none", "quantity": null, "createdAt": "2026-05-07T18:00:00.000Z" },
+    { "id": "pt-booking-5", "date": "2026-05-09", "documentNo": "PT-1005", "description": "Verkauf Trainingsband", "debitAccountId": "account-cash", "creditAccountId": "account-product-sales", "amount": 47.6, "taxType": "vat19", "taxMode": "gross", "inventoryItemId": "pt-item-band", "inventoryLinkType": "out", "quantity": 2, "createdAt": "2026-05-09T17:00:00.000Z" },
+    { "id": "pt-booking-6", "date": "2026-05-12", "documentNo": "PT-1006", "description": "Praxissoftware Mai", "debitAccountId": "account-expenses", "creditAccountId": "account-bank", "amount": 95.2, "taxType": "input19", "taxMode": "gross", "inventoryItemId": null, "inventoryLinkType": "none", "quantity": null, "createdAt": "2026-05-12T11:00:00.000Z" },
+    { "id": "pt-booking-7", "date": "2026-05-18", "documentNo": "PT-1007", "description": "Privatrechnung Sportphysio Patientin Lang", "debitAccountId": "account-receivables", "creditAccountId": "account-sales", "amount": 260, "taxType": "none", "taxMode": "net", "inventoryItemId": null, "inventoryLinkType": "none", "quantity": null, "createdAt": "2026-05-18T14:00:00.000Z" },
+    { "id": "pt-booking-8", "date": "2026-05-22", "documentNo": "PT-1008", "description": "Zahlung Privatrechnung Lang", "debitAccountId": "account-bank", "creditAccountId": "account-receivables", "amount": 260, "taxType": "none", "taxMode": "net", "inventoryItemId": null, "inventoryLinkType": "none", "quantity": null, "createdAt": "2026-05-22T10:00:00.000Z" },
+    { "id": "pt-booking-9", "date": "2026-05-28", "documentNo": "PT-1009", "description": "Miete Therapieraeume Mai", "debitAccountId": "account-rent", "creditAccountId": "account-bank", "amount": 1650, "taxType": "none", "taxMode": "net", "inventoryItemId": null, "inventoryLinkType": "none", "quantity": null, "createdAt": "2026-05-28T08:00:00.000Z" },
+    { "id": "pt-booking-10", "date": "2026-06-03", "documentNo": "PT-1010", "description": "Zahlung gesetzliche Heilmittelabrechnung Juni", "debitAccountId": "account-bank", "creditAccountId": "account-sales", "amount": 5100, "taxType": "none", "taxMode": "net", "inventoryItemId": null, "inventoryLinkType": "none", "quantity": null, "createdAt": "2026-06-03T10:00:00.000Z" },
+    { "id": "pt-booking-11", "date": "2026-06-06", "documentNo": "PT-1011", "description": "Einkauf Massageoel", "debitAccountId": "account-purchases", "creditAccountId": "account-payables", "amount": 119, "taxType": "input19", "taxMode": "gross", "inventoryItemId": "pt-item-oil", "inventoryLinkType": "in", "quantity": 10, "createdAt": "2026-06-06T13:00:00.000Z" },
+    { "id": "pt-booking-12", "date": "2026-06-13", "documentNo": "PT-1012", "description": "Kurs Rueckenschule bar bezahlt", "debitAccountId": "account-cash", "creditAccountId": "account-product-sales", "amount": 238, "taxType": "vat19", "taxMode": "gross", "inventoryItemId": null, "inventoryLinkType": "none", "quantity": null, "createdAt": "2026-06-13T12:00:00.000Z" },
+    { "id": "pt-booking-13", "date": "2026-06-18", "documentNo": "PT-1013", "description": "Zahlung Materiallieferant", "debitAccountId": "account-payables", "creditAccountId": "account-bank", "amount": 333.2, "taxType": "none", "taxMode": "net", "inventoryItemId": null, "inventoryLinkType": "none", "quantity": null, "createdAt": "2026-06-18T17:00:00.000Z" },
+    { "id": "pt-booking-14", "date": "2026-06-28", "documentNo": "PT-1014", "description": "Miete Therapieraeume Juni", "debitAccountId": "account-rent", "creditAccountId": "account-bank", "amount": 1650, "taxType": "none", "taxMode": "net", "inventoryItemId": null, "inventoryLinkType": "none", "quantity": null, "createdAt": "2026-06-28T08:00:00.000Z" }
+  ],
+  "inventoryItems": [
+    { "id": "pt-item-tape", "sku": "PT-001", "name": "Kinesio-Tape", "category": "Therapie", "unit": "Rolle", "openingStock": 8, "purchasePriceNet": 7.5, "salePriceNet": 0, "consumptionPerWeek": 4, "leadTimeDays": 6, "safetyStock": 6 },
+    { "id": "pt-item-band", "sku": "PT-002", "name": "Trainingsband", "category": "Verkauf", "unit": "Stk", "openingStock": 18, "purchasePriceNet": 8, "salePriceNet": 20, "consumptionPerWeek": 3, "leadTimeDays": 8, "safetyStock": 6 },
+    { "id": "pt-item-oil", "sku": "PT-003", "name": "Massageoel", "category": "Therapie", "unit": "Flasche", "openingStock": 5, "purchasePriceNet": 10, "salePriceNet": 0, "consumptionPerWeek": 2, "leadTimeDays": 7, "safetyStock": 4 }
+  ],
+  "inventoryMovements": [
+    { "id": "pt-movement-booking-3", "date": "2026-05-04", "itemId": "pt-item-tape", "type": "in", "quantity": 24, "unitValueNet": 7.5, "description": "Material rein aus Vorgang", "documentNo": "PT-1003", "linkedBookingId": "pt-booking-3" },
+    { "id": "pt-movement-booking-5", "date": "2026-05-09", "itemId": "pt-item-band", "type": "out", "quantity": 2, "unitValueNet": 8, "description": "Material raus aus Vorgang", "documentNo": "PT-1005", "linkedBookingId": "pt-booking-5" },
+    { "id": "pt-movement-1", "date": "2026-05-24", "itemId": "pt-item-tape", "type": "out", "quantity": 5, "unitValueNet": 7.5, "description": "Wochenverbrauch Behandlungsraeume", "documentNo": "PTL-1001", "linkedBookingId": null },
+    { "id": "pt-movement-booking-11", "date": "2026-06-06", "itemId": "pt-item-oil", "type": "in", "quantity": 10, "unitValueNet": 10, "description": "Material rein aus Vorgang", "documentNo": "PT-1011", "linkedBookingId": "pt-booking-11" },
+    { "id": "pt-movement-2", "date": "2026-06-22", "itemId": "pt-item-oil", "type": "out", "quantity": 3, "unitValueNet": 10, "description": "Wochenverbrauch Massage", "documentNo": "PTL-1002", "linkedBookingId": null }
+  ],
+  "auditLog": [],
+  "progress": { "completedSteps": [], "lastUpdated": null },
+  "settings": { "exportedAt": null, "createdAt": "2026-06-30T00:00:00.000Z", "lastSavedAt": null, "setupMode": "template", "templateId": "physiotherapy" }
+}

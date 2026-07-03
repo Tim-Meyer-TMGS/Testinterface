@@ -10,7 +10,7 @@
   inventoryMovements: [],
   auditLog: [],
   progress: { completedSteps: [], lastUpdated: null },
-  settings: { exportedAt: null, createdAt: null, lastSavedAt: null }
+  settings: { exportedAt: null, createdAt: null, lastSavedAt: null, setupMode: 'sample' }
 }
 ```
 
@@ -20,6 +20,23 @@
 - `name`: einsteigerfreundlicher Anzeigename, z. B. `Offene Patientenrechnungen`
 - `type`: `asset`, `liability`, `revenue`, `expense` oder `tax`
 - `debitTotal`, `creditTotal`, `balance`: berechnete Werte, nicht führende Eingabedaten
+
+## Setup-Modus
+- `settings.setupMode: 'sample'`: Standardmodus mit Zahnarztpraxis-Beispieldaten und vorbereiteten Bereichen.
+- `settings.setupMode: 'template'`: eine fachliche Vorlage wurde geladen.
+- `settings.setupMode: 'blank'`: leerer Übungsmodus; keine Standardkonten werden ergänzt.
+- `settings.templateId`: technische Kennung der geladenen Vorlage, z. B. `dentist`, `general-practice` oder `physiotherapy`.
+- Im leeren Übungsmodus müssen Nutzer Bereiche/Konten, Vorgänge, Artikel und Bewegungen selbst anlegen.
+- Vorgänge und Zahlungen sind erst sinnvoll möglich, wenn mindestens zwei Bereiche vorhanden sind.
+
+## Vorlagen
+- `dentist`: Zahnarztpraxis mit KZV-Abschlägen, Behandlungshonoraren, Privatleistungen, Prophylaxeartikeln und Praxislager.
+- `general-practice`: Hausarztpraxis mit KV-Abschlägen, Privatattesten, Impfstoff-/Praxisbedarf, Labor und Software.
+- `physiotherapy`: Physiotherapiepraxis mit Therapieerlösen, Selbstzahlern, Kursen, Materialverkauf und Therapiebedarf.
+- `data/app-data.json` ist die leere Grundvorlage für den Selbstaufbau.
+- `data/templates/*.json` enthält die fachlichen Quellvorlagen im Repository.
+- `public/data/app-data.json` ist die leere Laufzeit-Grundvorlage.
+- Vorlagen werden als JSON aus `public/data/templates` geladen, damit sie im Vite/GitHub-Pages-Build in `dist/data/templates` verfügbar sind.
 
 ## Buchung
 - `id`, `date`, `documentNo`, `description`

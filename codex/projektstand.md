@@ -6,7 +6,9 @@
 - Zielgruppe: Einsteiger ohne Buchführungsvorwissen, die typische Praxisvorgänge schrittweise nachvollziehen und üben wollen.
 - Plattform: Statische Web-App für GitHub Pages; keine Backend-Pflicht.
 - Speicher: Standardmäßig `localStorage` im Browser, zusätzlich JSON-Export und JSON-Import.
+- Startmodus: Standardmäßig werden Beispieldaten geladen; alternativ gibt es einen leeren Übungsmodus zum vollständigen Selbstaufbau.
 - Beispieldaten: Rund zwei Monate Zahnarztpraxisbetrieb im Mai/Juni 2026 mit Behandlungshonoraren, KZV-Abschlägen, Privatforderungen, Prophylaxeverkäufen, Materialeinkäufen, Labor, Miete und Praxissoftware.
+- Vorlagen: Zahnarztpraxis, Hausarztpraxis und Physiotherapie können in den Einstellungen geladen werden.
 - Fachlicher Rahmen: Praxisnaher Übungskontenplan mit sichtbaren Buchführungsbegriffen, aber einsteigerfreundlichen Bezeichnungen wie Zielkonto, Gegenkonto, Einnahme, Ausgabe und offene Rechnung.
 - Lager: Praxislager für Hygiene-, Behandlungs- und Prophylaxeartikel mit Material rein/raus, Bestandsprüfung und Nachbestellhinweisen.
 - Änderungsprotokoll: Kontobezogene Änderungen an Vorgängen, Zahlungen, Bereichen und Systemaktionen werden nachvollziehbar angezeigt.
@@ -21,7 +23,7 @@
 - Lager: Artikelverwaltung, Lagerbewegungen, Bestandskorrekturen, Verbrauch und Nachbestellung.
 - Globale Details: Buchungen, Bereiche, Zahlungen, Artikel und Materialbewegungen öffnen eine zentrale Detailansicht als Modal, ohne die Hauptansicht zu verlassen.
 - Export / Import: JSON- und CSV-Ausgabe sowie JSON-Wiederherstellung.
-- Einstellungen: Daten zurücksetzen, Beispieldaten neu laden und globales Änderungsprotokoll einsehen.
+- Einstellungen: Wechsel in den leeren Übungsmodus, Auswahl aus drei Vorlagen, Daten zurücksetzen und globales Änderungsprotokoll einsehen.
 
 ## Architektur
 - `index.html`: Minimaler Vue-Mount für die statische GitHub-Pages-App.
@@ -35,7 +37,10 @@
 - `src/audit.js`: Hilfslogik für kontobezogene Protokolleinträge und kompakte Vorher/Nachher-Snapshots.
 - `src/state.js`: State-Erzeugung, Normalisierung, IDs und Importvalidierung.
 - `src/storage.js`: LocalStorage-Adapter und vorbereiteter Server-Adapter.
-- `data/app-data.json`: Seed-Daten für das Praxisbeispiel.
+- `data/app-data.json`: leere Grundvorlage ohne Konten, Vorgänge und Lagerdaten.
+- `data/templates/*.json`: fachliche Quellvorlagen für Zahnarztpraxis, Hausarztpraxis und Physiotherapie.
+- `public/data/app-data.json`: leere Laufzeit-Grundvorlage für den Vite/GitHub-Pages-Build.
+- `public/data/templates/*.json`: Laufzeitdaten für die auswählbaren Vorlagen im Vite/GitHub-Pages-Build.
 - `.github/workflows/test.yml`: CI-Tests in GitHub Actions.
 - `.github/workflows/pages.yml`: Baut die Vue-App und veröffentlicht `dist` über GitHub Pages.
 - `vitest.config.js`: grenzt Unit-Tests auf `tests/**/*.test.js` ein, damit Playwright-Specs nicht von Vitest eingesammelt werden.
@@ -46,6 +51,7 @@
 - Die alte Vanilla-UI wird nicht mehr aus `index.html` geladen; die UI läuft über Vue-Komponenten.
 - Die App bleibt statisch lauffähig und nutzt `localStorage` als Standard-Speicher.
 - Leere oder durch frühere Ladefehler entstandene Browserstände werden beim Start automatisch durch die Beispieldaten ersetzt.
+- Der leere Übungsmodus ist davon ausgenommen und bleibt beim Neustart leer, bis Nutzer eigene Daten anlegen oder Beispieldaten laden.
 - GitHub Pages muss die per Actions gebaute Vite-Ausgabe aus `dist` veröffentlichen, nicht mehr den Repo-Root.
 
 ## Umgesetzte Sanierung
@@ -56,8 +62,13 @@
 - Die Oberfläche wurde für Anfänger vereinfacht: Vorgänge statt abstrakter Buchungen, Zielkonto/Gegenkonto statt isoliertem Soll/Haben, Material rein/raus statt Wareneingang/Lagerabgang.
 - Das Dashboard wurde als Startansicht aufgeräumt und zeigt einen vereinfachten Gesamt-Saldo: Kasse + Bank + offene Patientenrechnungen + Materialwert minus offene Lieferantenrechnungen.
 - Die Oberfläche wurde als Vue-App neu aufgebaut und ersetzt endlose Tabellen im Hauptfluss durch Karten, Timelines, Aktivitätslisten und Detailpanels.
+- Leerer Übungsmodus ergänzt: Nutzer können alle Bereiche/Konten, Vorgänge, Artikel und Bewegungen selbst anlegen; Standardkonten werden dann nicht automatisch ergänzt.
+- Vorlagensystem ergänzt: Zahnarztpraxis, Hausarztpraxis und Physiotherapie laden jeweils eigene Konten, Vorgänge, Artikel und Lagerbewegungen.
+- Datenablage bereinigt: Die leere Grundvorlage liegt in `app-data.json`; alle fachlichen Beispieldaten liegen vollständig unter `templates/`.
 - Vorgänge werden über ein vereinfachtes Formular mit Vorgangstypen wie Einnahme, Ausgabe, Materialeinkauf, Prophylaxeverkauf und Umbuchung erfasst.
 - Globale Detailansichten wurden als ein zentrales Modal umgesetzt; verknüpfte Datensätze können innerhalb des Modals weiter geöffnet werden.
+- Vorgänge öffnen nach dem Speichern kein automatisches Detail-Modal mehr; die UI zeigt nur eine Statusmeldung und lässt Nutzer im Arbeitsfluss.
+- Mobile Layout-Regeln wurden nachgeschärft: Karten, Formulare, Statuschips, Modals und Aktionsbuttons umbrechen auf kleinen Viewports sauberer.
 - Kontobezogenes Änderungsprotokoll umgesetzt: Vorgänge, Zahlungen, Bereichsänderungen, Import, Reset und Beispieldatenladen erzeugen lesbare Protokolleinträge.
 - Konto-Modal, Bereichsdetails und Einstellungen zeigen Protokolleinträge; Einträge öffnen ein Detail-Modal mit betroffenen Bereichen sowie Vorher/Nachher-Daten.
 - Steuerberechnung für netto/brutto sowie Umsatzsteuer/Vorsteuer in Kernlogik ausgelagert.

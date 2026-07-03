@@ -20,6 +20,33 @@ describe('Änderungsprotokoll', () => {
     expect(state.auditLog).toEqual([]);
   });
 
+  it('erlaubt im leeren Übungsmodus einen komplett eigenen Kontenaufbau', () => {
+    const state = normalizeState({
+      accounts: [],
+      bookings: [],
+      inventoryItems: [],
+      inventoryMovements: [],
+      settings: { setupMode: 'blank' }
+    });
+
+    expect(state.accounts).toEqual([]);
+    expect(state.settings.setupMode).toBe('blank');
+  });
+
+  it('vermischt Template-Konten nicht mit Default-Konten', () => {
+    const state = normalizeState({
+      accounts: [{ id: 'account-bank', accountNo: '1200', name: 'Eigene Bank', type: 'asset' }],
+      bookings: [],
+      inventoryItems: [],
+      inventoryMovements: [],
+      settings: { setupMode: 'template', templateId: 'custom' }
+    });
+
+    expect(state.accounts).toHaveLength(1);
+    expect(state.accounts[0].name).toBe('Eigene Bank');
+    expect(state.settings.templateId).toBe('custom');
+  });
+
   it('ermittelt betroffene Konten inklusive Steuerkonto', () => {
     expect(bookingAccountIds(booking)).toEqual(['account-bank', 'account-sales', 'account-vat']);
   });

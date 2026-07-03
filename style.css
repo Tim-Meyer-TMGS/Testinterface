@@ -31,6 +31,7 @@ button,
 input,
 select {
   font: inherit;
+  min-width: 0;
 }
 
 button {
@@ -48,6 +49,15 @@ button:hover {
   transform: none;
   box-shadow: none;
   background: var(--primary-dark);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+button:disabled:hover {
+  background: var(--primary);
 }
 
 button.secondary,
@@ -120,6 +130,20 @@ button.text-button {
 
 .content {
   min-width: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+strong,
+span,
+small,
+label,
+dd,
+dt {
+  overflow-wrap: anywhere;
 }
 
 .topbar {
@@ -211,14 +235,14 @@ small {
 .account-card-grid,
 .template-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
   gap: 0.7rem;
 }
 
 .dashboard-grid,
 .split-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(min(320px, 100%), 0.9fr);
   gap: 0.8rem;
 }
 
@@ -275,6 +299,7 @@ small {
   align-items: center;
   gap: 1rem;
   margin-bottom: 0.65rem;
+  min-width: 0;
 }
 
 .timeline,
@@ -323,7 +348,7 @@ small {
 }
 
 .resource-item {
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: center;
 }
 
@@ -390,7 +415,7 @@ small {
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, minmax(min(220px, 100%), 1fr));
   gap: 0.75rem;
 }
 
@@ -654,6 +679,10 @@ th {
     flex-direction: column;
   }
 
+  .topbar-meta {
+    font-size: 0.82rem;
+  }
+
   .dashboard-grid,
   .split-layout,
   .snapshot-grid {
@@ -662,5 +691,82 @@ th {
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  button {
+    width: 100%;
+  }
+
+  button.text-button,
+  .menu-toggle,
+  .detail-modal__close {
+    width: auto;
+  }
+
+  .main-content {
+    padding: 0.7rem;
+  }
+
+  .topbar {
+    padding: 0.75rem;
+  }
+
+  .dashboard-hero,
+  .card {
+    padding: 0.75rem;
+  }
+
+  .dashboard-actions,
+  .action-stack,
+  .detail-actions,
+  .chip-row,
+  .form-actions,
+  .detail-modal__footer {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .resource-item {
+    grid-template-columns: 1fr;
+  }
+
+  .status-pill,
+  .chip {
+    justify-self: start;
+    white-space: normal;
+    text-align: left;
+  }
+
+  .timeline-item,
+  .resource-item,
+  .account-card,
+  .template-card {
+    padding: 0.68rem;
+  }
+
+  .field-list > div {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-backdrop {
+    padding: 0.5rem;
+    align-items: end;
+  }
+
+  .detail-modal {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+
+  .detail-modal__header {
+    align-items: flex-start;
+  }
+
+  .inline-filter {
+    max-width: none;
+    width: 100%;
   }
 }

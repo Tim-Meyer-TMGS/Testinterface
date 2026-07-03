@@ -17,6 +17,8 @@
 - [x] SKR03-nahe Beispielkonten bereinigen
 - [x] Beispielkonten auf Zahnarztpraxisbetrieb erweitern
 - [x] Seed-Daten auf rund zwei Monate Praxisbetrieb erweitern
+- [x] Leeren Übungsmodus ohne automatische Standardkonten ergänzen
+- [x] Drei auswählbare Datenvorlagen ergänzen: Zahnarztpraxis, Hausarztpraxis, Physiotherapie
 - [x] Kontobezogene Änderungen an Vorgängen, Zahlungen, Bereichen und Systemaktionen protokollieren
 - [ ] Weitere Steuerfälle mit 7 % fachlich testen
 
@@ -40,7 +42,10 @@
 - [x] Kontobezogenes Änderungsprotokoll in Bereichen, Konto-Modal und Einstellungen anzeigen
 - [x] Vanilla-UI durch Vue-3-Oberfläche mit Karten, Timelines und Detailpanels ersetzen
 - [x] Vorgangsformular mit einsteigerfreundlichen Vorgangstypen ergänzen
-- [ ] Responsive Tabellen nach Test auf kleinen Viewports nacharbeiten
+- [x] UI-Hinweise und Sperren für Vorgänge/Zahlungen ohne ausreichend eigene Bereiche ergänzen
+- [x] Vorlagenauswahl in den Einstellungen ergänzen
+- [x] Erste Responsive-Nacharbeit für Karten, Formulare, Modals, Statuschips und Aktionsbuttons
+- [ ] Responsive Verhalten nach GitHub-Pages-Test auf echten kleinen Viewports prüfen
 
 ## Tests
 - [x] Unit-Test-Dateien für Steuer, Salden, Lager, Import und CSV anlegen
