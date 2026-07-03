@@ -23,4 +23,16 @@ describe('Lagerlogik', () => {
     expect(next.inventoryMovements).toHaveLength(1);
     expect(next.inventoryMovements[0].linkedBookingId).toBe('b1');
   });
+
+  it('legt bei Materialeinkauf automatisch einen Lagerzugang an', () => {
+    const booking = { id: 'b2', date: '2026-01-02', documentNo: 'BE-2', inventoryItemId: 'item-1', inventoryLinkType: 'in', quantity: 5 };
+    const next = syncMovementForBooking(state, booking);
+    expect(next.inventoryMovements).toHaveLength(1);
+    expect(next.inventoryMovements[0]).toMatchObject({
+      linkedBookingId: 'b2',
+      itemId: 'item-1',
+      type: 'in',
+      quantity: 5
+    });
+  });
 });

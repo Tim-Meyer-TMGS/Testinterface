@@ -48,6 +48,7 @@
 - `inventoryItemId`: optionaler Artikelbezug
 - `inventoryLinkType`: `none`, `in` oder `out`
 - `quantity`: Menge bei Lagerbezug
+- Bei `inventoryLinkType: 'in'` oder `'out'` erzeugt der Vorgang automatisch eine verknüpfte Lagerbewegung. Nutzer sollen den Zugang/Abgang nicht zusätzlich manuell im Lager erfassen.
 
 ## Vorgänge und Zahlungen
 - Vorgänge sind die führende Buchungsform für Geschäftsfälle wie Einnahmen, Ausgaben, Materialeinkäufe, Verkäufe und Umbuchungen.

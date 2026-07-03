@@ -74,6 +74,7 @@
 2. Lagerwirkung `Material kommt rein` und Menge 5 buchen.
 3. Eine verknüpfte Materialbewegung entsteht.
 4. Bestand steigt um 5.
+5. Der Lagerzugang muss nicht zusätzlich im Lagerformular erfasst werden.
 
 ### Materialabgang über Vorgang
 1. Artikel `Prophylaxe-Zahnbürsten` auswählen.

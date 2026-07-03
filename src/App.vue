@@ -79,6 +79,12 @@ const appContextLabel = computed(() => {
   if (store.state.settings.setupMode === 'blank') return 'Eigene Übung';
   return activeTemplate.value?.label || 'Beispielvorlage';
 });
+const bookingUsesInventory = computed(() => bookingForm.inventoryLinkType !== 'none');
+const inventoryBookingHint = computed(() => {
+  if (bookingForm.inventoryLinkType === 'in') return 'Beim Speichern wird automatisch ein Lagerzugang angelegt.';
+  if (bookingForm.inventoryLinkType === 'out') return 'Beim Speichern wird automatisch ein Lagerabgang angelegt.';
+  return '';
+});
 
 onMounted(async () => {
   await load();
@@ -464,6 +470,22 @@ async function loadTemplateAndPrepare(templateId) {
                   <option v-for="type in TAX_TYPES" :key="type" :value="type">{{ labels.taxes[type] || type }}</option>
                 </select>
               </label>
+              <div v-if="bookingUsesInventory" class="inventory-booking-box full-width">
+                <strong>{{ labels.inventoryLinks[bookingForm.inventoryLinkType] }}</strong>
+                <span>{{ inventoryBookingHint }}</span>
+                <p v-if="!store.state.inventoryItems.length" class="detail-warning">Bitte zuerst im Lager einen Artikel anlegen. Danach kann der Vorgang den Bestand automatisch verändern.</p>
+                <div class="form-grid nested">
+                  <label>Artikel
+                    <select v-model="bookingForm.inventoryItemId" :required="bookingUsesInventory">
+                      <option value="">Artikel auswählen</option>
+                      <option v-for="item in itemOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
+                    </select>
+                  </label>
+                  <label>Menge
+                    <input v-model="bookingForm.quantity" type="number" min="0.01" step="0.01" :required="bookingUsesInventory" />
+                  </label>
+                </div>
+              </div>
               <details class="full-width advanced-box">
                 <summary>Buchungsdetails anzeigen</summary>
                 <div class="form-grid nested">
@@ -471,8 +493,6 @@ async function loadTemplateAndPrepare(templateId) {
                   <label>Gegenkonto <select v-model="bookingForm.creditAccountId"><option v-for="account in accountOptions" :key="account.value" :value="account.value">{{ account.label }}</option></select></label>
                   <label>Netto/Brutto <select v-model="bookingForm.taxMode"><option v-for="mode in TAX_MODES" :key="mode" :value="mode">{{ mode === 'net' ? 'Netto eingeben' : 'Brutto eingeben' }}</option></select></label>
                   <label>Lagerwirkung <select v-model="bookingForm.inventoryLinkType"><option v-for="type in INVENTORY_LINK_TYPES" :key="type" :value="type">{{ labels.inventoryLinks[type] }}</option></select></label>
-                  <label>Artikel <select v-model="bookingForm.inventoryItemId"><option value="">Kein Artikel</option><option v-for="item in itemOptions" :key="item.value" :value="item.value">{{ item.label }}</option></select></label>
-                  <label>Menge <input v-model="bookingForm.quantity" type="number" min="0" step="0.01" /></label>
                 </div>
               </details>
               <div class="tax-summary full-width">Netto: {{ formatCurrency(taxPreview.netAmount) }} · Steuer: {{ formatCurrency(taxPreview.taxAmount) }} · Brutto: {{ formatCurrency(taxPreview.grossAmount) }}</div>

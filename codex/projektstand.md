@@ -76,6 +76,7 @@
 - Steuerberechnung für netto/brutto sowie Umsatzsteuer/Vorsteuer in Kernlogik ausgelagert.
 - Buchungssalden werden aus Buchungszeilen abgeleitet, nicht mehr nur aus einem Betrag.
 - Lagerwirkung bei Vorgängen ist explizit: kein Lager, Material kommt rein oder Material geht raus.
+- Bei Vorgängen mit Lagerwirkung werden Artikel und Menge direkt im Vorgangsformular sichtbar; beim Speichern entsteht automatisch die passende Lagerbewegung.
 - Lagerabgänge werden gegen verfügbaren Bestand validiert.
 - Verknüpfte Lagerbewegungen werden beim Speichern, Duplizieren und Löschen von Buchungen synchronisiert.
 - Dynamische Tabellen werden über DOM-Knoten aufgebaut, nicht über ungeprüfte HTML-Strings.
