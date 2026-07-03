@@ -45,7 +45,8 @@ test('Neuer Vorgang erscheint im Änderungsprotokoll', async ({ page }) => {
   await page.locator('#booking-amount').fill('100');
   await page.locator('#booking-tax-type').selectOption('none');
   await page.getByRole('button', { name: 'Vorgang speichern' }).click();
-  await page.getByLabel('Details schließen').click();
+  await expect(page.getByText('Vorgang gespeichert.')).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 
   await openView(page, 'Einstellungen');
   await expect(page.locator('#audit-log-list')).toContainText('Audit Test Behandlung');
